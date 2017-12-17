@@ -1,5 +1,6 @@
-package biz.karms;
+package biz.karms.protostream;
 
+import biz.karms.MyCacheManagerProvider;
 import biz.karms.cache.pojo.BlacklistedRecord;
 import biz.karms.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
@@ -7,9 +8,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.Search;
-import org.infinispan.query.dsl.Query;
-import org.infinispan.query.dsl.QueryFactory;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -21,30 +19,28 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.testng.Assert.assertNotNull;
-
 /**
  * @author Michal Karm Babacek
  */
-public class Dump2ProtoTest {
-
-    private static final Logger log = Logger.getLogger(Dump2ProtoTest.class.getName());
+public class IocProtostreamGeneratorTest {
+    private static final Logger log = Logger.getLogger(IocProtostreamGeneratorTest.class.getName());
 
     @DataProvider(name = "domainFilesProvider")
     public Object[][] domainFilesProvider() {
         return new Object[][]{
-                {String.class, "100_domains.txt"},
-                {String.class, "1000_domains.txt"}//,
+                {String.class, "100_domains.txt"}//,
+                //{String.class, "1000_domains.txt"}//,
                 //{String.class, "10000_domains.txt"}
         };
     }
 
     @Test(dataProvider = "domainFilesProvider")
-    void iocGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
+    void iocProtostreamGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);
 
         final MyCacheManagerProvider myCacheManagerProvider = new MyCacheManagerProvider(
@@ -109,7 +105,7 @@ public class Dump2ProtoTest {
         );
 
         blacklistCache.clear();
-        List<String> fqdns = new ArrayList<>(1000);
+        final List<String> fqdns = new ArrayList<>(1000);
         System.out.print("Progress:");
         try (Stream<String> stream = Files.lines(Paths.get(domainsFile))) {
             stream.forEach(fqdn -> {
@@ -117,6 +113,9 @@ public class Dump2ProtoTest {
                 final String fqdnHashed = DigestUtils.md5Hex(fqdn);
 
                 final HashMap<String, ImmutablePair<String, String>> feedToType = new HashMap<>();
+
+                // this 2 in 2-some-feed-to-sink" is not arbitrary -> it targets customer 668
+
                 feedToType.put("2-some-feed-to-sink", new ImmutablePair<>("fqdn", "bla bla"));
                 feedToType.put("something-nobody-has-configured", new ImmutablePair<>("fqdn", "bla bla"));
                 final HashMap<String, Integer> accuracy = new HashMap<>();
@@ -124,7 +123,7 @@ public class Dump2ProtoTest {
                 accuracy.put("lobotomie", 30);
                 final HashMap<String, HashMap<String, Integer>> feedAccuracy = new HashMap<>();
                 feedAccuracy.put("2-some-feed-to-sink", accuracy);
-                final BlacklistedRecord blacklistedRecord = new BlacklistedRecord(fqdnHashed, Calendar.getInstance(), feedToType, feedAccuracy, Boolean.FALSE);
+                final BlacklistedRecord blacklistedRecord = new BlacklistedRecord(fqdnHashed, Calendar.getInstance(), feedToType, feedAccuracy, (fqdns.size() % 2 == 0) ? Boolean.TRUE : Boolean.FALSE);
                 blacklistCache.put(fqdnHashed, blacklistedRecord);
                 System.out.print('.');
                 System.out.flush();
@@ -134,37 +133,15 @@ public class Dump2ProtoTest {
         }
         System.out.print('\n');
 
-        System.out.format("IoC cache stats: %s\n", blacklistCache.stats().getStatsMap());
 
-        // Client 192.168.1.12 from 192.168.1.1/28 Client id 666
-        // Asks about adjmp.xyz
+        final Thread generatorThread = new Thread(new IocProtostreamGenerator(cacheManagerForIndexableCaches, blacklistCache));
+        generatorThread.start();
+        generatorThread.join();
 
-        final BlacklistedRecord ioc = blacklistCache.get(DigestUtils.md5Hex(fqdns.get(0)));
+        // Deserialize
+//TODO
+     //   karm@local:~/Projects/rob/ispn-dump2proto (master *%=)$ wc -l /tmp/ioclist.bin668
+       // 200 /tmp/ioclist.bin668
 
-        assertNotNull(ioc, "IoC was not supposed to be nul at this point.");
-        // What to do with that domain based on client IP address and rules?
-        final QueryFactory qf = Search.getQueryFactory(ruleRemoteCache);
-        String clientIPAsNumber = CIDRUtils.getStartEndAddresses("192.168.1.12").getLeft();
-        Query query = qf.from(Rule.class)
-                .having("startAddress").lte(clientIPAsNumber)
-                .and()
-                .having("endAddress").gte(clientIPAsNumber)
-                .and()
-                .having("sources.feedUid").in(ioc.getSources().keySet())
-                .toBuilder().build();
-        List<Rule> resultRules = query.list();
-        System.out.format("Rule record relevant to the client %s and fqdn %s is:\n", "192.168.1.12", fqdns.get(0));
-        resultRules.forEach(System.out::println);
-        clientIPAsNumber = CIDRUtils.getStartEndAddresses("192.170.1.12").getLeft();
-        query = qf.from(Rule.class)
-                .having("startAddress").lte(clientIPAsNumber)
-                .and()
-                .having("endAddress").gte(clientIPAsNumber)
-                .and()
-                .having("sources.feedUid").in(ioc.getSources().keySet())
-                .toBuilder().build();
-        resultRules = query.list();
-        System.out.format("Rule record relevant to the client %s and fqdn %s is:\n", "192.170.1.12", fqdns.get(0));
-        resultRules.forEach(System.out::println);
     }
 }

@@ -113,7 +113,9 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             // https://github.com/infinispan/infinispan/pull/4975
             // final Map<String, Action> iocWithCustomLists = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().filter(x -> !fqdnsOnCustomerBlackOrLog.contains(x)).collect(Collectors.toMap(Function.identity(), s -> Action.WHITE));
 
-            iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().collect(Collectors.toMap(Function.identity(), s -> Action.CHECK)));
+            iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream()
+                    .filter(key -> !blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key).isPresentOnWhiteList())
+                    .collect(Collectors.toMap(Function.identity(), s -> Action.CHECK)));
 
             log.info("IoCWithCustom: Pulling and processing iocWithCustomLists data took: " + (System.currentTimeMillis() - start) + " ms, there are " + iocWithCustom.size() + " records to be saved.");
             start = System.currentTimeMillis();

@@ -39,8 +39,8 @@ public class Dump2Proto {
     public static final String SINKIT_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
 
     // If host or port are nto set, the app fails to start.
-    private static final String SINKIT_HOTROD_HOST = System.getenv("SINKIT_HOTROD_HOST");
-    private static final int SINKIT_HOTROD_PORT = Integer.parseInt(System.getenv("SINKIT_HOTROD_PORT"));
+    private static final String SINKIT_HOTROD_HOST = System.getProperty("SINKIT_HOTROD_HOST");
+    private static final int SINKIT_HOTROD_PORT = Integer.parseInt(System.getProperty("SINKIT_HOTROD_PORT"));
     private static final long SINKIT_HOTROD_CONN_TIMEOUT_S = (System.getenv().containsKey("SINKIT_HOTROD_CONN_TIMEOUT_S")) ?
             Integer.parseInt(System.getenv("SINKIT_HOTROD_CONN_TIMEOUT_S")) :
             300;
@@ -54,27 +54,27 @@ public class Dump2Proto {
     /**
      * 5 - 10 minutes is a sane value, i.e. 300s
      */
-    private static final long SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getenv("SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S"));
+    private static final long SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S"));
 
     /**
      * cca 4 hours could be a good interval, i.e. 14400s
      */
-    private static final long SINKIT_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getenv("SINKIT_IOC_GENERATOR_INTERVAL_S"));
+    private static final long SINKIT_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_IOC_GENERATOR_INTERVAL_S"));
 
     /**
      * cca 1 hour could be a good interval, i.e. 3600s
      */
-    private static final long SINKIT_ALL_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getenv("SINKIT_ALL_IOC_GENERATOR_INTERVAL_S"));
+    private static final long SINKIT_ALL_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_ALL_IOC_GENERATOR_INTERVAL_S"));
 
     /**
      * cca 2 minutes could be a good interval, i.e. 120s
      */
-    private static final long SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getenv("SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S"));
+    private static final long SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S"));
 
     /**
      * cca 12 hours is O.K., i.e. 43200s
      */
-    private static final long SINKIT_WHITELIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getenv("SINKIT_WHITELIST_GENERATOR_INTERVAL_S"));
+    private static final long SINKIT_WHITELIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_WHITELIST_GENERATOR_INTERVAL_S"));
 
     /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
@@ -108,7 +108,7 @@ public class Dump2Proto {
         }
     }
 
-    public Dump2Proto(final MyCacheManagerProvider myCacheManagerProvider) {
+    private Dump2Proto(final MyCacheManagerProvider myCacheManagerProvider) {
         this.myCacheManagerProvider = myCacheManagerProvider;
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);

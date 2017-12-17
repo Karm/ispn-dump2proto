@@ -38,6 +38,8 @@
         <commons.validator.version>1.5.0</commons.validator.version>
         <commons.codec.version>1.10</commons.codec.version>
         <commons.lang3.version>3.6</commons.lang3.version>
+        <!-- convenience utilities -->
+        <com.google.code.gson.version>2.6.2</com.google.code.gson.version>
         <!-- Test -->
         <org.testng.version>6.11</org.testng.version>
         <docker.plugin.version>0.22.1</docker.plugin.version>
@@ -49,7 +51,7 @@
             <artifactId>infinispan-bom</artifactId>
             <version>${infinispan.core.version}</version>
             <type>pom</type>
-            <scope>import</scope>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -81,7 +83,13 @@
             <artifactId>commons-lang3</artifactId>
             <version>${commons.lang3.version}</version>
         </dependency>
-        
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${com.google.code.gson.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
