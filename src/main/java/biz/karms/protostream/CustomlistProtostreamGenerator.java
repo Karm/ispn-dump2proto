@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.SINKIT_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -95,9 +95,9 @@ public class CustomlistProtostreamGenerator implements Runnable {
         start = System.currentTimeMillis();
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
         try {
-            ctx.registerProtoFiles(FileDescriptorSource.fromResources(SINKIT_CACHE_PROTOBUF));
+            ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
         } catch (IOException e) {
-            log.severe("Not found " + SINKIT_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+            log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
             return;
         }
         ctx.registerMarshaller(new SinkitCacheEntryMarshaller());

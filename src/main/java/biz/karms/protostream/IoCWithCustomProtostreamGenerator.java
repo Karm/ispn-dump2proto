@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.SINKIT_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -121,9 +121,9 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             start = System.currentTimeMillis();
             final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
             try {
-                ctx.registerProtoFiles(FileDescriptorSource.fromResources(SINKIT_CACHE_PROTOBUF));
+                ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
             } catch (IOException e) {
-                log.severe("Not found " + SINKIT_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             ctx.registerMarshaller(new SinkitCacheEntryMarshaller());
@@ -134,7 +134,7 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             try {
                 Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
             } catch (IOException e) {
-                log.severe("Not found " + SINKIT_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             log.info("IoCWithCustom: Serialization to " + iocWithCustomFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms.");
@@ -163,7 +163,7 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
         /*
         Inexpensive, loads the generated file if it exists and updates it with just custom lists data.
         if the file doesn't exist at all, it creates it and fills it with custom lists data. There are no
-        IoCs present until the ALL_IOC_TAG logic runs as scheduled by SINKIT_ALL_IOC_PROTOSTREAM_GENERATOR_D_H_M_S.
+        IoCs present until the ALL_IOC_TAG logic runs as scheduled by D2P_ALL_IOC_PROTOSTREAM_GENERATOR_D_H_M_S.
 
         The drawback is that records don't get removed until ALL_IOC_TAG phase regenerates the file.
         */
@@ -172,9 +172,9 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             final File iocWithCustomBinary = new File(iocWithCustomFilePath);
             final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
             try {
-                ctx.registerProtoFiles(FileDescriptorSource.fromResources(SINKIT_CACHE_PROTOBUF));
+                ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
             } catch (IOException e) {
-                log.severe("Not found " + SINKIT_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             ctx.registerMarshaller(new SinkitCacheEntryMarshaller());

@@ -32,17 +32,17 @@ public class Dump2Proto {
     protected static final Logger log = Logger.getLogger(Dump2Proto.class.getName());
 
     public static final String GENERATED_PROTOFILES_DIRECTORY =
-            (System.getenv().containsKey("SINKIT_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getenv("SINKIT_GENERATED_PROTOFILES_DIRECTORY")))
-                    ? System.getenv("SINKIT_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
+            (System.getProperties().containsKey("D2P_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY")))
+                    ? System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
     public static final Set<OpenOption> options = Stream.of(APPEND, CREATE).collect(Collectors.toSet());
     public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-r-----"));
-    public static final String SINKIT_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
+    public static final String D2P_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
 
     // If host or port are nto set, the app fails to start.
-    private static final String SINKIT_HOTROD_HOST = System.getProperty("SINKIT_HOTROD_HOST");
-    private static final int SINKIT_HOTROD_PORT = Integer.parseInt(System.getProperty("SINKIT_HOTROD_PORT"));
-    private static final long SINKIT_HOTROD_CONN_TIMEOUT_S = (System.getenv().containsKey("SINKIT_HOTROD_CONN_TIMEOUT_S")) ?
-            Integer.parseInt(System.getenv("SINKIT_HOTROD_CONN_TIMEOUT_S")) :
+    private static final String D2P_HOTROD_HOST = System.getProperty("D2P_HOTROD_HOST");
+    private static final int D2P_HOTROD_PORT = Integer.parseInt(System.getProperty("D2P_HOTROD_PORT", "11322"));
+    private static final long D2P_HOTROD_CONN_TIMEOUT_S = (System.getProperties().containsKey("D2P_HOTROD_CONN_TIMEOUT_S")) ?
+            Integer.parseInt(System.getProperty("D2P_HOTROD_CONN_TIMEOUT_S")) :
             300;
 
     /**
@@ -54,27 +54,27 @@ public class Dump2Proto {
     /**
      * 5 - 10 minutes is a sane value, i.e. 300s
      */
-    private static final long SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S"));
+    private static final long D2P_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_CUSTOMLIST_GENERATOR_INTERVAL_S", "0"));
 
     /**
      * cca 4 hours could be a good interval, i.e. 14400s
      */
-    private static final long SINKIT_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_IOC_GENERATOR_INTERVAL_S"));
+    private static final long D2P_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_IOC_GENERATOR_INTERVAL_S", "0"));
 
     /**
      * cca 1 hour could be a good interval, i.e. 3600s
      */
-    private static final long SINKIT_ALL_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_ALL_IOC_GENERATOR_INTERVAL_S"));
+    private static final long D2P_ALL_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_ALL_IOC_GENERATOR_INTERVAL_S", "0"));
 
     /**
      * cca 2 minutes could be a good interval, i.e. 120s
      */
-    private static final long SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S"));
+    private static final long D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S", "0"));
 
     /**
      * cca 12 hours is O.K., i.e. 43200s
      */
-    private static final long SINKIT_WHITELIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("SINKIT_WHITELIST_GENERATOR_INTERVAL_S"));
+    private static final long D2P_WHITELIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_WHITELIST_GENERATOR_INTERVAL_S", "0"));
 
     /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
@@ -109,80 +109,84 @@ public class Dump2Proto {
     }
 
     private Dump2Proto(final MyCacheManagerProvider myCacheManagerProvider) {
+
+        //TODO: Validation
+
         this.myCacheManagerProvider = myCacheManagerProvider;
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
-        if (SINKIT_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
+        if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
             this.allIocWithCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.ALL),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            SINKIT_ALL_IOC_GENERATOR_INTERVAL_S, SECONDS);
+                            D2P_ALL_IOC_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.allIocWithCustomlistGeneratorHandle = null;
         }
 
-        if (SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
+        if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.customListGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new CustomlistProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
+                            D2P_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.customListGeneratorHandle = null;
         }
 
-        if (SINKIT_IOC_GENERATOR_INTERVAL_S > 0) {
+        if (D2P_IOC_GENERATOR_INTERVAL_S > 0) {
             this.iocGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IocProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            SINKIT_IOC_GENERATOR_INTERVAL_S, SECONDS);
+                            D2P_IOC_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.iocGeneratorHandle = null;
         }
 
 
-        if (SINKIT_WHITELIST_GENERATOR_INTERVAL_S > 0) {
+        if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
             this.whitelistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new WhitelistProtostreamGenerator(myCacheManagerProvider.getWhitelistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            SINKIT_WHITELIST_GENERATOR_INTERVAL_S, SECONDS);
+                            D2P_WHITELIST_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.whitelistGeneratorHandle = null;
         }
 
-        if (SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
+        if (D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.allCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.CUSTOM_LISTS_ONLY),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
+                            D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.allCustomlistGeneratorHandle = null;
         }
     }
 
     public void cancelAll() {
-        if(customListGeneratorHandle != null) {
+        if (customListGeneratorHandle != null) {
             customListGeneratorHandle.cancel(true);
         }
-        if(iocGeneratorHandle != null) {
+        if (iocGeneratorHandle != null) {
             iocGeneratorHandle.cancel(true);
         }
-        if(allIocWithCustomlistGeneratorHandle != null) {
+        if (allIocWithCustomlistGeneratorHandle != null) {
             allIocWithCustomlistGeneratorHandle.cancel(true);
         }
-        if(whitelistGeneratorHandle != null) {
+        if (whitelistGeneratorHandle != null) {
             whitelistGeneratorHandle.cancel(true);
         }
-        if(allCustomlistGeneratorHandle != null) {
+        if (allCustomlistGeneratorHandle != null) {
             allCustomlistGeneratorHandle.cancel(true);
         }
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        final Dump2Proto dump2Proto = new Dump2Proto(new MyCacheManagerProvider(SINKIT_HOTROD_HOST, SINKIT_HOTROD_PORT, SINKIT_HOTROD_CONN_TIMEOUT_S));
+        System.out.println("D2P_HOTROD_HOST: "+D2P_HOTROD_HOST);
+        final Dump2Proto dump2Proto = new Dump2Proto(new MyCacheManagerProvider(D2P_HOTROD_HOST, D2P_HOTROD_PORT, D2P_HOTROD_CONN_TIMEOUT_S));
     }
 
 }

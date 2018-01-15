@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.SINKIT_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -57,7 +57,7 @@ public class WhitelistProtostreamGenerator implements Runnable {
         start = System.currentTimeMillis();
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
         try {
-            ctx.registerProtoFiles(FileDescriptorSource.fromResources(SINKIT_CACHE_PROTOBUF));
+            ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
         } catch (IOException e) {
             e.printStackTrace();
         }

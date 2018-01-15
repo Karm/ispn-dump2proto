@@ -48,15 +48,15 @@ public class Dump2ProtoTest {
         log.info("domainsFile: " + domainsFile);
 
         final MyCacheManagerProvider myCacheManagerProvider = new MyCacheManagerProvider(
-                System.getProperty("SINKIT_HOTROD_HOST"),
-                Integer.parseInt(System.getProperty("SINKIT_HOTROD_PORT")),
+                System.getProperty("D2P_HOTROD_HOST"),
+                Integer.parseInt(System.getProperty("D2P_HOTROD_PORT")),
                 10);
 
-        System.setProperty("SINKIT_CUSTOMLIST_GENERATOR_INTERVAL_S", "0");
-        System.setProperty("SINKIT_IOC_GENERATOR_INTERVAL_S", "5");
-        System.setProperty("SINKIT_ALL_IOC_GENERATOR_INTERVAL_S", "0");
-        System.setProperty("SINKIT_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S", "0");
-        System.setProperty("SINKIT_WHITELIST_GENERATOR_INTERVAL_S", "0");
+        System.setProperty("D2P_CUSTOMLIST_GENERATOR_INTERVAL_S", "0");
+        System.setProperty("D2P_IOC_GENERATOR_INTERVAL_S", "5");
+        System.setProperty("D2P_ALL_IOC_GENERATOR_INTERVAL_S", "0");
+        System.setProperty("D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S", "0");
+        System.setProperty("D2P_WHITELIST_GENERATOR_INTERVAL_S", "0");
 
         final RemoteCache<String, BlacklistedRecord> blacklistCache = myCacheManagerProvider.getBlacklistCache();
         final RemoteCache<String, Rule> ruleRemoteCache;
