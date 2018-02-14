@@ -35,7 +35,7 @@ public class Dump2Proto {
             (System.getProperties().containsKey("D2P_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY")))
                     ? System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
     public static final Set<OpenOption> options = Stream.of(APPEND, CREATE).collect(Collectors.toSet());
-    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-r-----"));
+    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-r--r--"));
     public static final String D2P_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
 
     // If host or port are nto set, the app fails to start.
