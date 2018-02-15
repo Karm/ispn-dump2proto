@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +34,8 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -131,17 +132,15 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             ctx.registerMarshaller(new ActionMarshaller());
             final Path iocWithCustomFilePathTmpP = Paths.get(iocWithCustomFilePathTmp);
             final Path iocWithCustomFilePathP = Paths.get(iocWithCustomFilePath);
-            try {
-                Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
+            try (final SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
+                s.write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
             } catch (IOException e) {
                 log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             log.info("IoCWithCustom: Serialization to " + iocWithCustomFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms.");
             start = System.currentTimeMillis();
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(new File(iocWithCustomFilePathTmp));
+            try (final FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
                 Files.write(Paths.get(iocWithCustomFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocWithCustomFilePathTmpP, iocWithCustomFilePathP, REPLACE_EXISTING);
@@ -149,14 +148,6 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             } catch (IOException e) {
                 log.severe("IoCWithCustom: failed protofile manipulation.");
                 e.printStackTrace();
-            } finally {
-                if (fis != null) {
-                    try {
-                        fis.close();
-                    } catch (IOException e) {
-                        log.severe("IoCWithCustom: Failed to close MD5 file stream.");
-                    }
-                }
             }
             log.info("IoCWithCustom: MD5 sum and move took: " + (System.currentTimeMillis() - start) + " ms.");
 
@@ -188,21 +179,12 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             long start = System.currentTimeMillis();
 
             if (iocWithCustomBinary.exists()) {
-                InputStream is = null;
-                try {
-                    is = new FileInputStream(iocWithCustomBinary);
-                } catch (IOException e) {
-                    log.severe(iocWithCustomFilePath + " not found. This is unexpected, skipping IoCWithCustom altogether.");
-                }
-
-                // Deserialize from file to memory
-                try {
+                try (final InputStream is = new FileInputStream(iocWithCustomBinary)) {
                     iocWithCustom = ProtobufUtil.readFrom(ctx, is, HashMap.class);
                 } catch (IOException e) {
-                    log.severe("Cannot read generated file " + iocWithCustomFilePath);
+                    log.severe(iocWithCustomFilePath + " not found. This is unexpected, skipping IoCWithCustom altogether.");
                     return;
                 }
-
                 log.info("IoCWithCustom: Deserialization of " + iocWithCustom.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
             } else {
                 iocWithCustom = new HashMap<>();
@@ -221,17 +203,15 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
                 }
             });
 
-            try {
+            try (final SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
                 // Serialize from memory to file
-                Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
+                s.write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
             } catch (IOException e) {
                 log.severe("Cannot write generated file " + iocWithCustomFilePath);
                 return;
             }
 
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(new File(iocWithCustomFilePathTmp));
+            try (final FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
                 Files.write(Paths.get(iocWithCustomFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocWithCustomFilePathTmpP, iocWithCustomFilePathP, REPLACE_EXISTING);
@@ -240,14 +220,6 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             } catch (IOException e) {
                 log.severe("IoCWithCustom: failed protofile manipulation.");
                 e.printStackTrace();
-            } finally {
-                if (fis != null) {
-                    try {
-                        fis.close();
-                    } catch (IOException e) {
-                        log.severe("IoCWithCustom: Failed to close MD5 file stream.");
-                    }
-                }
             }
         } else {
             log.severe("Unknown timer. Either \"" + SCOPE.ALL + "\" or \"" + SCOPE.CUSTOM_LISTS_ONLY + "\" expected. Skipping IoCWithCustom altogether.");

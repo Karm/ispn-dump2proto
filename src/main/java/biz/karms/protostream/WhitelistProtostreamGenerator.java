@@ -15,6 +15,7 @@ import org.infinispan.protostream.config.Configuration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,8 +24,8 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -67,16 +68,14 @@ public class WhitelistProtostreamGenerator implements Runnable {
 
         final Path whiteListFilePathTmpP = Paths.get(whiteListFilePathTmp);
         final Path whiteListFilePathP = Paths.get(whiteListFilePath);
-        try {
-            Files.newByteChannel(whiteListFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, whitelist));
+        try (final SeekableByteChannel s = Files.newByteChannel(whiteListFilePathTmpP, options, attr)) {
+            s.write(ProtobufUtil.toByteBuffer(ctx, whitelist));
         } catch (IOException e) {
             e.printStackTrace();
         }
         log.info("WhitelistProtostreamGenerator: Serialization to " + whiteListFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
-        FileInputStream fis = null;
-        try {
-            fis = new FileInputStream(new File(whiteListFilePathTmp));
+        try (final FileInputStream fis = new FileInputStream(new File(whiteListFilePathTmp))) {
             Files.write(Paths.get(whiteListFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
             // There is a race condition when we swap files while REST API is reading them...
             Files.move(whiteListFilePathTmpP, whiteListFilePathP, REPLACE_EXISTING);
@@ -84,14 +83,6 @@ public class WhitelistProtostreamGenerator implements Runnable {
         } catch (IOException e) {
             log.severe("WhitelistProtostreamGenerator: failed protofile manipulation");
             e.printStackTrace();
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    log.severe("WhitelistProtostreamGenerator: Failed to close MD5 file stream.");
-                }
-            }
         }
         log.info("WhitelistProtostreamGenerator: MD5 sum and move took: " + (System.currentTimeMillis() - start) + " ms");
     }

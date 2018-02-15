@@ -185,7 +185,7 @@ public class Dump2Proto {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        System.out.println("D2P_HOTROD_HOST: "+D2P_HOTROD_HOST);
+        log.info("D2P_HOTROD_HOST: " + D2P_HOTROD_HOST);
         final Dump2Proto dump2Proto = new Dump2Proto(new MyCacheManagerProvider(D2P_HOTROD_HOST, D2P_HOTROD_PORT, D2P_HOTROD_CONN_TIMEOUT_S));
     }
 

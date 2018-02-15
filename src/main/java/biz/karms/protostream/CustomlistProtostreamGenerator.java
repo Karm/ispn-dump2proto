@@ -19,6 +19,7 @@ import org.infinispan.query.dsl.QueryFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -108,15 +109,14 @@ public class CustomlistProtostreamGenerator implements Runnable {
             log.info("CustomlistProtostreamGenerator: Serializing customer ID: " + r.getKey() + " and its " + r.getValue().size() + " records.");
             final Path customListFilePathTmpP = Paths.get(customListFilePathTmp + r.getKey());
             final Path customListFilePathP = Paths.get(customListFilePath + r.getKey());
-            try {
-                Files.newByteChannel(customListFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, r.getValue()));
+            try (final SeekableByteChannel s = Files.newByteChannel(customListFilePathTmpP, options, attr)){
+                s.write(ProtobufUtil.toByteBuffer(ctx, r.getValue()));
             } catch (IOException e) {
                 log.severe("CustomlistProtostreamGenerator: failed protobuffer serialization for customer id " + r.getKey());
                 e.printStackTrace();
             }
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(new File(customListFilePathTmp + r.getKey()));
+
+            try (final FileInputStream fis = new FileInputStream(new File(customListFilePathTmp + r.getKey()))) {
                 Files.write(Paths.get(customListFileMd5Tmp + r.getKey()), DigestUtils.md5Hex(fis).getBytes());
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(customListFilePathTmpP, customListFilePathP, REPLACE_EXISTING);
@@ -124,14 +124,6 @@ public class CustomlistProtostreamGenerator implements Runnable {
             } catch (IOException e) {
                 log.severe("CustomlistProtostreamGenerator: failed protofile manipulation for customer id " + r.getKey());
                 e.printStackTrace();
-            } finally {
-                if (fis != null) {
-                    try {
-                        fis.close();
-                    } catch (IOException e) {
-                        log.severe("CustomlistProtostreamGenerator: Failed to close MD5 file stream.");
-                    }
-                }
             }
         });
         log.info("CustomlistProtostreamGenerator: Serialization of custom lists for " + customerIdDomainData.size() + " customer ids took: " + (System.currentTimeMillis() - start) + " ms.");

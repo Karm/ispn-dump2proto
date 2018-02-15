@@ -21,6 +21,7 @@ import org.infinispan.query.dsl.QueryFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -199,15 +200,13 @@ public class IocProtostreamGenerator implements Runnable {
             log.info("IOCListProtostreamGenerator: processing Ioc data file for serialization " + workCounter.getAndIncrement() + "/" + preparedHashes.size() + ", customer id: " + r.getKey());
             final Path iocListFilePathTmpP = Paths.get(iocListFilePathTmp + r.getKey());
             final Path iocListFilePathP = Paths.get(iocListFilePath + r.getKey());
-            try {
-                Files.newByteChannel(iocListFilePathTmpP, options, attr).write(ProtobufUtil.toByteBuffer(ctx, r.getValue()));
+            try (final SeekableByteChannel s = Files.newByteChannel(iocListFilePathTmpP, options, attr)) {
+                s.write(ProtobufUtil.toByteBuffer(ctx, r.getValue()));
             } catch (IOException e) {
                 log.severe("IOCListProtostreamGenerator: failed protobuffer serialization for customer id " + r.getKey());
                 e.printStackTrace();
             }
-            FileInputStream fis = null;
-            try {
-                fis = new FileInputStream(new File(iocListFilePathTmp + r.getKey()));
+            try (final FileInputStream fis = new FileInputStream(new File(iocListFilePathTmp + r.getKey()))) {
                 Files.write(Paths.get(iocListFileMd5Tmp + r.getKey()), DigestUtils.md5Hex(fis).getBytes());
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocListFilePathTmpP, iocListFilePathP, REPLACE_EXISTING);
@@ -215,14 +214,6 @@ public class IocProtostreamGenerator implements Runnable {
             } catch (IOException e) {
                 log.severe("IOCListProtostreamGenerator: failed protofile manipulation for customer id " + r.getKey());
                 e.printStackTrace();
-            } finally {
-                if (fis != null) {
-                    try {
-                        fis.close();
-                    } catch (IOException e) {
-                        log.severe("IOCListProtostreamGenerator: Failed to close MD5 file stream.");
-                    }
-                }
             }
         });
         log.info("IOCListProtostreamGenerator: Serialization of ioc lists took: " + (System.currentTimeMillis() - start) + " ms.");
