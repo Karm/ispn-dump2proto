@@ -80,10 +80,10 @@ public class Dump2Proto {
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
      */
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    //private final ScheduledExecutorService customListGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    //private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    //private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    //private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService customListGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
 
     private final MyCacheManagerProvider myCacheManagerProvider;
 
@@ -117,7 +117,7 @@ public class Dump2Proto {
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
-            this.allIocWithCustomlistGeneratorHandle = scheduler
+            this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.ALL),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
@@ -127,7 +127,7 @@ public class Dump2Proto {
         }
 
         if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
-            this.customListGeneratorHandle = scheduler
+            this.customListGeneratorHandle = customListGeneratorScheduler
                     .scheduleAtFixedRate(new CustomlistProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
@@ -136,7 +136,7 @@ public class Dump2Proto {
         }
 
         if (D2P_IOC_GENERATOR_INTERVAL_S > 0) {
-            this.iocGeneratorHandle = scheduler
+            this.iocGeneratorHandle = iocGeneratorScheduler
                     .scheduleAtFixedRate(new IocProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
@@ -147,7 +147,7 @@ public class Dump2Proto {
 
 
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
-            this.whitelistGeneratorHandle = scheduler
+            this.whitelistGeneratorHandle = whitelistGeneratorScheduler
                     .scheduleAtFixedRate(new WhitelistProtostreamGenerator(myCacheManagerProvider.getWhitelistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_WHITELIST_GENERATOR_INTERVAL_S, SECONDS);
