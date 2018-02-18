@@ -12,7 +12,7 @@ import java.util.HashMap;
  */
 public class BlacklistedRecord implements Serializable {
 
-    private static final long serialVersionUID = -8145400537257478381L;
+    private static final long serialVersionUID = -8738664627706834541L;
 
     /**
      * Stored as an MD5 hash

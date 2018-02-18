@@ -98,7 +98,7 @@ public class IocProtostreamGenerator implements Runnable {
 
         // TODO: bulk? Super slow and inefficient?
         // entrySet - unsupported op
-        blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().forEach(key -> {
+        blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().forEach(key -> {
             final BlacklistedRecord b = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key);
             if (!b.isPresentOnWhiteList()) {
                 b.getSources().keySet().forEach(feeduid -> {
