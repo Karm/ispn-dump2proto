@@ -1,8 +1,8 @@
 package biz.karms.protostream;
 
 import biz.karms.MyCacheManagerProvider;
-import biz.karms.cache.pojo.BlacklistedRecord;
-import biz.karms.cache.pojo.Rule;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;

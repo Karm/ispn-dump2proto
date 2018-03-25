@@ -1,11 +1,11 @@
 package biz.karms;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.cache.pojo.BlacklistedRecord;
-import biz.karms.cache.pojo.WhitelistedRecord;
-import biz.karms.cache.pojo.marshallers.CustomListMarshaller;
-import biz.karms.cache.pojo.marshallers.ImmutablePairMarshaller;
-import biz.karms.cache.pojo.marshallers.RuleMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.WhitelistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.CustomListMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.ImmutablePairMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.RuleMarshaller;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.exceptions.TransportException;
@@ -57,7 +57,14 @@ public class MyCacheManagerProvider {
 
         if (cacheManager == null) {
             org.infinispan.client.hotrod.configuration.ConfigurationBuilder builder = new org.infinispan.client.hotrod.configuration.ConfigurationBuilder();
-            builder.addServer()
+            builder.tcpKeepAlive(true)
+                    .tcpNoDelay(true)
+                    .connectionPool()
+                    .numTestsPerEvictionRun(3)
+                    .testOnBorrow(false)
+                    .testOnReturn(false)
+                    .testWhileIdle(true)
+                    .addServer()
                     .host(hotrodHost)
                     .port(hotrodPort);
             cacheManager = new RemoteCacheManager(builder.build());

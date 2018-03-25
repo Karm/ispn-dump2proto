@@ -37,7 +37,7 @@
         <!-- Apache commons -->
         <commons.validator.version>1.5.0</commons.validator.version>
         <commons.codec.version>1.10</commons.codec.version>
-        <commons.lang3.version>3.6</commons.lang3.version>
+        <commons.lang3.version>3.4</commons.lang3.version>
         <!-- convenience utilities -->
         <com.google.code.gson.version>2.6.2</com.google.code.gson.version>
         <!-- Test -->
@@ -88,6 +88,18 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${com.google.code.gson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>biz.karms.sinkit</groupId>
+            <artifactId>sinkit-ejb</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

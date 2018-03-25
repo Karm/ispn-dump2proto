@@ -1,8 +1,8 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.cache.pojo.BlacklistedRecord;
-import biz.karms.cache.pojo.CustomList;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
@@ -27,9 +27,11 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -114,7 +116,9 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             // https://github.com/infinispan/infinispan/pull/4975
             // final Map<String, Action> iocWithCustomLists = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().filter(x -> !fqdnsOnCustomerBlackOrLog.contains(x)).collect(Collectors.toMap(Function.identity(), s -> Action.WHITE));
 
-            iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream()
+            final Set<String> iocs = Collections.unmodifiableSet(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
+
+            iocWithCustom.putAll(iocs.stream()
                     .filter(key -> !blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key).isPresentOnWhiteList())
                     .collect(Collectors.toMap(Function.identity(), s -> Action.CHECK)));
 

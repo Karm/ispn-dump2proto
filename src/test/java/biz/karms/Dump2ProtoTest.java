@@ -1,7 +1,7 @@
 package biz.karms;
 
-import biz.karms.cache.pojo.BlacklistedRecord;
-import biz.karms.cache.pojo.Rule;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;

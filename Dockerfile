@@ -1,7 +1,7 @@
-FROM fedora:27
+FROM fedora:25
 MAINTAINER Michal Karm Babacek <karm@email.cz>
 
-ENV DEPS      java-1.8.0-openjdk-devel.x86_64 nfs-utils libnfsidmap
+ENV DEPS      java-1.8.0-openjdk-devel.x86_64 jna.x86_64 nfs-utils libnfsidmap
 ENV D2P_HOME  "/opt/dump2proto/"
 ENV JAVA_HOME "/usr/lib/jvm/java-1.8.0"
 
@@ -19,7 +19,11 @@ EXPOSE 111/udp 2049/tcp
 ENV D2P_VERSION 1.0-SNAPSHOT
 # TODO: So something like su -c 'java ...' -s /bin/bash - dump2proto to drop root for java process...
 ADD start.sh /opt/dump2proto/
-RUN echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
+ADD log4j.xml /opt/dump2proto/
+RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
+        export DBG_OPTS="-Dtrace=org.infinispan -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${D2P_DBG_PORT:-1661} -Xnoagent -Djava.compiler=NONE"; \
+    fi; \
+    echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
     echo 'start' >> /opt/dump2proto/start.sh && \
     echo 'export JAVA_OPTS="\
  -server \
@@ -45,6 +49,8 @@ RUN echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2
  -DD2P_ALL_IOC_GENERATOR_INTERVAL_S=${D2P_ALL_IOC_GENERATOR_INTERVAL_S:-30} \
  -DD2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S=${D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S:-30} \
  -DD2P_WHITELIST_GENERATOR_INTERVAL_S=${D2P_WHITELIST_GENERATOR_INTERVAL_S:-30} \
+ ${DBG_OPTS} \
+ -Dlog4j.configuration=file:/opt/dump2proto/log4j.xml \
  -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}-jar-with-dependencies.jar \
  ' >> /opt/dump2proto/start.sh
 ADD target/ispn-dump2proto-${D2P_VERSION}-jar-with-dependencies.jar /opt/dump2proto/

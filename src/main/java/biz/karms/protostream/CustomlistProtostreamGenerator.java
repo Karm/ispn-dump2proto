@@ -1,7 +1,7 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.cache.pojo.CustomList;
+import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;

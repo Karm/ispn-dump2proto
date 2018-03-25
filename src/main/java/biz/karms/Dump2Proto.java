@@ -1,9 +1,6 @@
 package biz.karms;
 
-import biz.karms.protostream.CustomlistProtostreamGenerator;
-import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
 import biz.karms.protostream.IocProtostreamGenerator;
-import biz.karms.protostream.WhitelistProtostreamGenerator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -89,11 +86,11 @@ public class Dump2Proto {
 
     private final ShutdownHook jvmShutdownHook;
 
-    private final ScheduledFuture<?> customListGeneratorHandle;
+    //   private final ScheduledFuture<?> customListGeneratorHandle;
     private final ScheduledFuture<?> iocGeneratorHandle;
-    private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
-    private final ScheduledFuture<?> whitelistGeneratorHandle;
-    private final ScheduledFuture<?> allCustomlistGeneratorHandle;
+    //   private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
+    //   private final ScheduledFuture<?> whitelistGeneratorHandle;
+    //   private final ScheduledFuture<?> allCustomlistGeneratorHandle;
 
     private static class ShutdownHook extends Thread {
         private final MyCacheManagerProvider myCacheManagerProvider;
@@ -115,7 +112,7 @@ public class Dump2Proto {
         this.myCacheManagerProvider = myCacheManagerProvider;
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
-
+/*
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
             this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
@@ -125,7 +122,8 @@ public class Dump2Proto {
         } else {
             this.allIocWithCustomlistGeneratorHandle = null;
         }
-
+*/
+/*
         if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.customListGeneratorHandle = customListGeneratorScheduler
                     .scheduleAtFixedRate(new CustomlistProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches()),
@@ -134,6 +132,7 @@ public class Dump2Proto {
         } else {
             this.customListGeneratorHandle = null;
         }
+        */
 
         if (D2P_IOC_GENERATOR_INTERVAL_S > 0) {
             this.iocGeneratorHandle = iocGeneratorScheduler
@@ -145,7 +144,7 @@ public class Dump2Proto {
             this.iocGeneratorHandle = null;
         }
 
-
+/*
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
             this.whitelistGeneratorHandle = whitelistGeneratorScheduler
                     .scheduleAtFixedRate(new WhitelistProtostreamGenerator(myCacheManagerProvider.getWhitelistCache()),
@@ -154,7 +153,8 @@ public class Dump2Proto {
         } else {
             this.whitelistGeneratorHandle = null;
         }
-
+*/
+/*
         if (D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.allCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
@@ -164,16 +164,17 @@ public class Dump2Proto {
         } else {
             this.allCustomlistGeneratorHandle = null;
         }
+        */
     }
 
     public void cancelAll() {
-        if (customListGeneratorHandle != null) {
-            customListGeneratorHandle.cancel(true);
-        }
+        //  if (customListGeneratorHandle != null) {
+        //      customListGeneratorHandle.cancel(true);
+        //  }
         if (iocGeneratorHandle != null) {
             iocGeneratorHandle.cancel(true);
         }
-        if (allIocWithCustomlistGeneratorHandle != null) {
+     /*   if (allIocWithCustomlistGeneratorHandle != null) {
             allIocWithCustomlistGeneratorHandle.cancel(true);
         }
         if (whitelistGeneratorHandle != null) {
@@ -181,7 +182,7 @@ public class Dump2Proto {
         }
         if (allCustomlistGeneratorHandle != null) {
             allCustomlistGeneratorHandle.cancel(true);
-        }
+        }*/
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {

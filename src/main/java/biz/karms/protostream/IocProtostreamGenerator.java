@@ -1,13 +1,12 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.cache.pojo.BlacklistedRecord;
-import biz.karms.cache.pojo.Rule;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.Search;
@@ -98,7 +97,64 @@ public class IocProtostreamGenerator implements Runnable {
 
         // TODO: bulk? Super slow and inefficient?
         // entrySet - unsupported op
-        blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().forEach(key -> {
+//        final Set<String> iocs = Collections.unmodifiableSet(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());//.stream().collect(Collectors.toMap(Function.identity(), s -> Action.WHITE));
+
+        // final RemoteCache<String, BlacklistedRecord> iocs = blacklistCache;//.withFlags(Flag.SKIP_CACHE_LOAD).withFlags(Flag.FORCE_RETURN_VALUE);
+
+        log.info("Getting bulk...");
+        final Map<String, BlacklistedRecord> iocs = blacklistCache.getBulk(10);//.withFlags(Flag.SKIP_CACHE_LOAD).withFlags(Flag.FORCE_RETURN_VALUE);
+        log.info("Got bulk: " + iocs.size());
+
+
+       /*
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        final Map<String, BlacklistedRecord> b = iocs.getBulk();
+        System.out.println("=========================================");
+        */
+        //start = System.currentTimeMillis();
+
+        // TODO: Well, this hurts...  We wil probably need to use retrieve(...) and operate in chunks.
+        // https://github.com/infinispan/infinispan/pull/4975
+        //final Set<String> iocs = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet();
+        //log.info(">>>>>>>>>>. Pulling keys took: " + (System.currentTimeMillis() - start) + " ms");
+
+        //iocs.forEach(log::info);
+        start = System.currentTimeMillis();
+        //final BlacklistedRecord blacklistedRecord = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).withFlags(Flag.FORCE_RETURN_VALUE).get("0d833be406fefed90136fa4b76eb37b0");
+        //log.log(Level.INFO, ">>>>>>>>>>>>>>. blacklistCache.get took: " + (System.currentTimeMillis() - start) + " ms.");
+
+        //log.info(blacklistedRecord.toString());
+
+        iocs.forEach((k, v) -> {
+            System.out.print('+');
+            if (!v.isPresentOnWhiteList()) {
+                v.getSources().keySet().forEach(feeduid -> {
+                    custIdFeedUidsLog.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
+                        if (preparedHashes.containsKey(found.getKey())) {
+                            preparedHashes.get(found.getKey()).put(k, Action.LOG);
+                        } else {
+                            final Map<String, Action> newHashes = new HashMap<>();
+                            newHashes.put(k, Action.LOG);
+                            preparedHashes.put(found.getKey(), newHashes);
+                        }
+                    });
+                    custIdFeedUidsSink.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
+                        if (preparedHashes.containsKey(found.getKey())) {
+                            preparedHashes.get(found.getKey()).put(k, Action.BLACK);
+                        } else {
+                            final Map<String, Action> newHashes = new HashMap<>();
+                            newHashes.put(k, Action.BLACK);
+                            preparedHashes.put(found.getKey(), newHashes);
+                        }
+                    });
+                });
+            }
+        });
+
+        //iocs.forEach(key -> {
+
+       /* for (final String key : iocs) {
+            System.out.print('+');
             final BlacklistedRecord b = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key);
             if (!b.isPresentOnWhiteList()) {
                 b.getSources().keySet().forEach(feeduid -> {
@@ -122,7 +178,9 @@ public class IocProtostreamGenerator implements Runnable {
                     });
                 });
             }
-        });
+
+        }*/
+        //});
 
 /*
         blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().forEach(key -> blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key).getSources().keySet().forEach(feeduid -> {
@@ -182,7 +240,7 @@ public class IocProtostreamGenerator implements Runnable {
                 .collect(Collectors.toList());
        */
 
-        log.info("IOCListProtostreamGenerator: Pulling ioclist data took: " + (System.currentTimeMillis() - start) + " ms");
+        log.info("IOCListProtostreamGenerator: Pulling " + iocs.size() + " ioclist data took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
         try {
