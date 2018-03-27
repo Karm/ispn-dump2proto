@@ -7,6 +7,8 @@ Dumps Infinispan cache to a Google Protobuffer file wth filters and processors a
 
 ## Building
 
+The dependency on protostream 3.0.7.Final-karm-SNAPSHOT comes from the experimental: [Karm/protostream/tree/3.0.7.Final-karm](https://github.com/Karm/protostream/tree/3.0.7.Final-karm)
+
     mvn clean package && \
     sudo docker build -t karm/ispn-dump2proto:1.0.15 . && \
     sudo docker push karm/ispn-dump2proto:1.0.15
