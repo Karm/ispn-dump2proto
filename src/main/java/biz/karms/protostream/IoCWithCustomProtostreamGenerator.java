@@ -1,11 +1,11 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
-import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
+import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.infinispan.client.hotrod.Flag;
@@ -27,12 +27,11 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -52,6 +51,8 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
     private final RemoteCacheManager cacheManagerForIndexableCaches;
 
     private final RemoteCache<String, BlacklistedRecord> blacklistCache;
+
+    private static final int MAX_BULK_SIZE = 10_000;
 
     private final SCOPE scope;
 
@@ -111,24 +112,27 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             */
             log.info("IoCWithCustom: Pulling customLists data took: " + (System.currentTimeMillis() - start) + " ms, there are " + iocWithCustom.size() + " fqdns that are Blocked or Logged by some users.");
             start = System.currentTimeMillis();
-
-            // TODO: Well, this hurts...  We wil probably need to use retrieve(...) and operate in chunks.
-            // https://github.com/infinispan/infinispan/pull/4975
-            // final Map<String, Action> iocWithCustomLists = blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().filter(x -> !fqdnsOnCustomerBlackOrLog.contains(x)).collect(Collectors.toMap(Function.identity(), s -> Action.WHITE));
-
-            final Set<String> iocs = Collections.unmodifiableSet(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
-
-            iocWithCustom.putAll(iocs.stream()
-                    .filter(key -> !blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).get(key).isPresentOnWhiteList())
-                    .collect(Collectors.toMap(Function.identity(), s -> Action.CHECK)));
-
+            // keySet on the cache - a very expensive call, dozens of seconds for single digit millions o records
+            final Set<String> iocKeys = new HashSet<>(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
+            final int bulks = (iocKeys.size() % MAX_BULK_SIZE == 0) ? iocKeys.size() / MAX_BULK_SIZE : iocKeys.size() / MAX_BULK_SIZE + 1;
+            log.info("IoCWithCustom: There are " + iocKeys.size() + " ioc keys to get data for in " + bulks + " bulks. Ioc keys retrieval took " + (System.currentTimeMillis() - start) + " ms.");
+            for (int iteration = 0; iteration < bulks; iteration++) {
+                long startBulk = System.currentTimeMillis();
+                log.info("IOCListProtostreamGenerator: Processing bulk " + iteration + " of " + bulks + " bulks...");
+                final Set<String> bulkOfKeys = iocKeys.stream().unordered().limit(MAX_BULK_SIZE).collect(Collectors.toSet());
+                iocKeys.removeAll(bulkOfKeys);
+                // getAll on the cache - a very expensive call
+                iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys).entrySet().stream().unordered().filter(e -> !e.getValue().isPresentOnWhiteList())
+                        .collect(Collectors.toMap(Map.Entry::getKey, s -> Action.CHECK)));
+                log.info("IoCWithCustom: Processed bulk " + iteration + " in " + (System.currentTimeMillis() - startBulk) + " ms.");
+            }
             log.info("IoCWithCustom: Pulling and processing iocWithCustomLists data took: " + (System.currentTimeMillis() - start) + " ms, there are " + iocWithCustom.size() + " records to be saved.");
             start = System.currentTimeMillis();
             final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
             try {
                 ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
             } catch (IOException e) {
-                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("IoCWithCustom: Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             ctx.registerMarshaller(new SinkitCacheEntryMarshaller());
@@ -136,16 +140,18 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             ctx.registerMarshaller(new ActionMarshaller());
             final Path iocWithCustomFilePathTmpP = Paths.get(iocWithCustomFilePathTmp);
             final Path iocWithCustomFilePathP = Paths.get(iocWithCustomFilePath);
-            try (final SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
+            try (SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
                 s.write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
+                s.close(); // TODO: Superfluous?
             } catch (IOException e) {
-                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("IoCWithCustom: Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             log.info("IoCWithCustom: Serialization to " + iocWithCustomFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms.");
             start = System.currentTimeMillis();
-            try (final FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
+            try (FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
                 Files.write(Paths.get(iocWithCustomFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
+                fis.close(); // TODO: Superfluous?
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocWithCustomFilePathTmpP, iocWithCustomFilePathP, REPLACE_EXISTING);
                 Files.move(Paths.get(iocWithCustomFileMd5Tmp), Paths.get(iocWithCustomFileMd5), REPLACE_EXISTING);
@@ -169,7 +175,7 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             try {
                 ctx.registerProtoFiles(FileDescriptorSource.fromResources(D2P_CACHE_PROTOBUF));
             } catch (IOException e) {
-                log.severe("Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
+                log.severe("IoCWithCustom: Not found " + D2P_CACHE_PROTOBUF + ". Cannot recover, quitting task.");
                 return;
             }
             ctx.registerMarshaller(new SinkitCacheEntryMarshaller());
@@ -183,10 +189,12 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
             long start = System.currentTimeMillis();
 
             if (iocWithCustomBinary.exists()) {
-                try (final InputStream is = new FileInputStream(iocWithCustomBinary)) {
+                try (InputStream is = new FileInputStream(iocWithCustomBinary)) {
                     iocWithCustom = ProtobufUtil.readFrom(ctx, is, HashMap.class);
+                    is.close(); // TODO: Superfluous?
                 } catch (IOException e) {
-                    log.severe(iocWithCustomFilePath + " not found. This is unexpected, skipping IoCWithCustom altogether.");
+                    e.printStackTrace();
+                    log.severe("IoCWithCustom: " + iocWithCustomFilePath + " being empty / non-deserializable is unexpected. We abort.");
                     return;
                 }
                 log.info("IoCWithCustom: Deserialization of " + iocWithCustom.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
@@ -207,16 +215,18 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
                 }
             });
 
-            try (final SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
+            try (SeekableByteChannel s = Files.newByteChannel(iocWithCustomFilePathTmpP, options, attr)) {
                 // Serialize from memory to file
                 s.write(ProtobufUtil.toByteBuffer(ctx, iocWithCustom));
+                s.close(); // TODO: Superfluous?
             } catch (IOException e) {
-                log.severe("Cannot write generated file " + iocWithCustomFilePath);
+                log.severe("IoCWithCustom: Cannot write generated file " + iocWithCustomFilePath);
                 return;
             }
 
-            try (final FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
+            try (FileInputStream fis = new FileInputStream(new File(iocWithCustomFilePathTmp))) {
                 Files.write(Paths.get(iocWithCustomFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
+                fis.close(); // TODO: Superfluous?
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocWithCustomFilePathTmpP, iocWithCustomFilePathP, REPLACE_EXISTING);
                 Files.move(Paths.get(iocWithCustomFileMd5Tmp), Paths.get(iocWithCustomFileMd5), REPLACE_EXISTING);
@@ -226,7 +236,7 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
                 e.printStackTrace();
             }
         } else {
-            log.severe("Unknown timer. Either \"" + SCOPE.ALL + "\" or \"" + SCOPE.CUSTOM_LISTS_ONLY + "\" expected. Skipping IoCWithCustom altogether.");
+            log.severe("IoCWithCustom: Unknown timer. Either \"" + SCOPE.ALL + "\" or \"" + SCOPE.CUSTOM_LISTS_ONLY + "\" expected. Skipping IoCWithCustom altogether.");
         }
     }
 }

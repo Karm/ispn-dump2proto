@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
+import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.attr;
 import static biz.karms.Dump2Proto.options;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -105,18 +105,19 @@ public class CustomlistProtostreamGenerator implements Runnable {
         ctx.registerMarshaller(new CoreCacheMarshaller());
         ctx.registerMarshaller(new ActionMarshaller());
 
+        //TODO: forEach((k,v) ->), do we need parallel?
         customerIdDomainData.entrySet().forEach(r -> {
             log.info("CustomlistProtostreamGenerator: Serializing customer ID: " + r.getKey() + " and its " + r.getValue().size() + " records.");
             final Path customListFilePathTmpP = Paths.get(customListFilePathTmp + r.getKey());
             final Path customListFilePathP = Paths.get(customListFilePath + r.getKey());
-            try (final SeekableByteChannel s = Files.newByteChannel(customListFilePathTmpP, options, attr)){
+            try (SeekableByteChannel s = Files.newByteChannel(customListFilePathTmpP, options, attr)) {
                 s.write(ProtobufUtil.toByteBuffer(ctx, r.getValue()));
             } catch (IOException e) {
                 log.severe("CustomlistProtostreamGenerator: failed protobuffer serialization for customer id " + r.getKey());
                 e.printStackTrace();
             }
 
-            try (final FileInputStream fis = new FileInputStream(new File(customListFilePathTmp + r.getKey()))) {
+            try (FileInputStream fis = new FileInputStream(new File(customListFilePathTmp + r.getKey()))) {
                 Files.write(Paths.get(customListFileMd5Tmp + r.getKey()), DigestUtils.md5Hex(fis).getBytes());
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(customListFilePathTmpP, customListFilePathP, REPLACE_EXISTING);

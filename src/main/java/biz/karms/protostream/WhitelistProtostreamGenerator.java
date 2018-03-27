@@ -1,9 +1,9 @@
 package biz.karms.protostream;
 
-import biz.karms.sinkit.ejb.cache.pojo.WhitelistedRecord;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.WhitelistedRecord;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -70,13 +70,15 @@ public class WhitelistProtostreamGenerator implements Runnable {
         final Path whiteListFilePathP = Paths.get(whiteListFilePath);
         try (final SeekableByteChannel s = Files.newByteChannel(whiteListFilePathTmpP, options, attr)) {
             s.write(ProtobufUtil.toByteBuffer(ctx, whitelist));
+            s.close(); // TODO: Superfluous?
         } catch (IOException e) {
             e.printStackTrace();
         }
         log.info("WhitelistProtostreamGenerator: Serialization to " + whiteListFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
-        try (final FileInputStream fis = new FileInputStream(new File(whiteListFilePathTmp))) {
+        try (FileInputStream fis = new FileInputStream(new File(whiteListFilePathTmp))) {
             Files.write(Paths.get(whiteListFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
+            fis.close(); // TODO: Superfluous?
             // There is a race condition when we swap files while REST API is reading them...
             Files.move(whiteListFilePathTmpP, whiteListFilePathP, REPLACE_EXISTING);
             Files.move(Paths.get(whiteListFileMd5Tmp), Paths.get(whiteListFileMd5), REPLACE_EXISTING);

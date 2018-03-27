@@ -7,8 +7,9 @@ Dumps Infinispan cache to a Google Protobuffer file wth filters and processors a
 
 ## Building
 
-    mvn clean assembly:assembly -DskipTests
-    sudo docker build -t karm/ispn-dump2proto:1.0-SNAPSHOT .
+    mvn clean package && \
+    sudo docker build -t karm/ispn-dump2proto:1.0.15 . && \
+    sudo docker push karm/ispn-dump2proto:1.0.15
 
 ## Running
 
@@ -29,5 +30,3 @@ TODO: get rid of privileged and define CAPs
     -e 'D2P_WHITELIST_GENERATOR_INTERVAL_S=30' \
     --privileged -p 192.168.122.156:111:111/udp -p 192.168.122.156:2049:2049/tcp \
     --net=host -v /exports:/exports -d -i --name ispn-dump2proto karm/ispn-dump2proto:1.0-SNAPSHOT
-
-

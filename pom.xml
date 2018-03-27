@@ -28,6 +28,7 @@
     </developers>
 
     <properties>
+        <assembly.lib.directory>${project.build.directory}/lib</assembly.lib.directory>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- maven-compiler-plugin -->
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -58,6 +59,18 @@
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-remote</artifactId>
             <version>${infinispan.core.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.infinispan.protostream</groupId>
+                    <artifactId>protostream</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.infinispan.protostream</groupId>
+            <artifactId>protostream</artifactId>
+            <version>3.0.7.Final-karm-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -85,12 +98,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${com.google.code.gson.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>biz.karms.sinkit</groupId>
             <artifactId>sinkit-ejb</artifactId>
             <version>2.0.0-SNAPSHOT</version>
@@ -114,28 +121,49 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>biz.karms.Dump2Proto</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>biz.karms.Dump2Proto</mainClass>
+                                </transformer>
+                            </transformers>
+                            <minimizeJar>true</minimizeJar>
+                            <filters>
+                                <filter>
+                                    <artifact>org.infinispan:infinispan-remote</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>org/infinispan/protostream/**</exclude>
+                                        <exclude>protostream/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.infinispan.protostream</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.jboss.logging</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>

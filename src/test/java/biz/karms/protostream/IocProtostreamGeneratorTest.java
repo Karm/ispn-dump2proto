@@ -139,8 +139,8 @@ public class IocProtostreamGeneratorTest {
 
         // Deserialize
 //TODO
-     //   karm@local:~/Projects/rob/ispn-dump2proto (master *%=)$ wc -l /tmp/ioclist.bin668
-       // 200 /tmp/ioclist.bin668
+        //   karm@local:~/Projects/rob/ispn-dump2proto (master *%=)$ wc -l /tmp/ioclist.bin668
+        // 200 /tmp/ioclist.bin668
 
     }
 }

@@ -1,6 +1,9 @@
 package biz.karms;
 
+import biz.karms.protostream.CustomlistProtostreamGenerator;
+import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
 import biz.karms.protostream.IocProtostreamGenerator;
+import biz.karms.protostream.WhitelistProtostreamGenerator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -32,7 +35,7 @@ public class Dump2Proto {
             (System.getProperties().containsKey("D2P_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY")))
                     ? System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
     public static final Set<OpenOption> options = Stream.of(APPEND, CREATE).collect(Collectors.toSet());
-    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-r--r--"));
+    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-rw-rw-"));
     public static final String D2P_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
 
     // If host or port are nto set, the app fails to start.
@@ -59,7 +62,7 @@ public class Dump2Proto {
     private static final long D2P_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_IOC_GENERATOR_INTERVAL_S", "0"));
 
     /**
-     * cca 1 hour could be a good interval, i.e. 3600s
+     * cca 2 hours could be a good interval, i.e. 7200s
      */
     private static final long D2P_ALL_IOC_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_ALL_IOC_GENERATOR_INTERVAL_S", "0"));
 
@@ -86,11 +89,11 @@ public class Dump2Proto {
 
     private final ShutdownHook jvmShutdownHook;
 
-    //   private final ScheduledFuture<?> customListGeneratorHandle;
+    private final ScheduledFuture<?> customListGeneratorHandle;
     private final ScheduledFuture<?> iocGeneratorHandle;
-    //   private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
-    //   private final ScheduledFuture<?> whitelistGeneratorHandle;
-    //   private final ScheduledFuture<?> allCustomlistGeneratorHandle;
+    private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
+    private final ScheduledFuture<?> whitelistGeneratorHandle;
+    private final ScheduledFuture<?> allCustomlistGeneratorHandle;
 
     private static class ShutdownHook extends Thread {
         private final MyCacheManagerProvider myCacheManagerProvider;
@@ -112,9 +115,11 @@ public class Dump2Proto {
         this.myCacheManagerProvider = myCacheManagerProvider;
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
-/*
+
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
+            //this.allIocWithCustomlistGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
             this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
+                    //this.allIocWithCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.ALL),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
@@ -122,20 +127,21 @@ public class Dump2Proto {
         } else {
             this.allIocWithCustomlistGeneratorHandle = null;
         }
-*/
-/*
+
+
         if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.customListGeneratorHandle = customListGeneratorScheduler
+                    //this.customListGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new CustomlistProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.customListGeneratorHandle = null;
         }
-        */
 
         if (D2P_IOC_GENERATOR_INTERVAL_S > 0) {
             this.iocGeneratorHandle = iocGeneratorScheduler
+                    //this.iocGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IocProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
@@ -144,17 +150,16 @@ public class Dump2Proto {
             this.iocGeneratorHandle = null;
         }
 
-/*
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
             this.whitelistGeneratorHandle = whitelistGeneratorScheduler
+                    //this.whitelistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new WhitelistProtostreamGenerator(myCacheManagerProvider.getWhitelistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_WHITELIST_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.whitelistGeneratorHandle = null;
         }
-*/
-/*
+
         if (D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.allCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
@@ -164,17 +169,17 @@ public class Dump2Proto {
         } else {
             this.allCustomlistGeneratorHandle = null;
         }
-        */
     }
 
     public void cancelAll() {
-        //  if (customListGeneratorHandle != null) {
-        //      customListGeneratorHandle.cancel(true);
-        //  }
         if (iocGeneratorHandle != null) {
             iocGeneratorHandle.cancel(true);
         }
-     /*   if (allIocWithCustomlistGeneratorHandle != null) {
+        if (customListGeneratorHandle != null) {
+            customListGeneratorHandle.cancel(true);
+        }
+
+        if (allIocWithCustomlistGeneratorHandle != null) {
             allIocWithCustomlistGeneratorHandle.cancel(true);
         }
         if (whitelistGeneratorHandle != null) {
@@ -182,7 +187,7 @@ public class Dump2Proto {
         }
         if (allCustomlistGeneratorHandle != null) {
             allCustomlistGeneratorHandle.cancel(true);
-        }*/
+        }
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {

@@ -51,7 +51,6 @@ public class DomainExploderTest {
         return Collections.singletonList(fqdn);
     }
 
-
     @Test(dataProvider = "domainFilesProvider")
     void explodeTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);

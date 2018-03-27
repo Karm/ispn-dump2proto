@@ -19,7 +19,6 @@ EXPOSE 111/udp 2049/tcp
 ENV D2P_VERSION 1.0-SNAPSHOT
 # TODO: So something like su -c 'java ...' -s /bin/bash - dump2proto to drop root for java process...
 ADD start.sh /opt/dump2proto/
-ADD log4j.xml /opt/dump2proto/
 RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
         export DBG_OPTS="-Dtrace=org.infinispan -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${D2P_DBG_PORT:-1661} -Xnoagent -Djava.compiler=NONE"; \
     fi; \
@@ -50,8 +49,7 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
  -DD2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S=${D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S:-30} \
  -DD2P_WHITELIST_GENERATOR_INTERVAL_S=${D2P_WHITELIST_GENERATOR_INTERVAL_S:-30} \
  ${DBG_OPTS} \
- -Dlog4j.configuration=file:/opt/dump2proto/log4j.xml \
- -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}-jar-with-dependencies.jar \
+ -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}.jar \
  ' >> /opt/dump2proto/start.sh
-ADD target/ispn-dump2proto-${D2P_VERSION}-jar-with-dependencies.jar /opt/dump2proto/
+ADD target/ispn-dump2proto-${D2P_VERSION}.jar /opt/dump2proto/
 CMD ["/opt/dump2proto/start.sh"]
