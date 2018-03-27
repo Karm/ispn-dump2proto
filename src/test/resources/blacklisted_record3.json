@@ -1,0 +1,17 @@
+{
+  "blackListedDomainOrIP":"1d5920f4b44b27a802bd77c4f0536f5a",
+  "crc64Hash": "2188053200414634897",
+  "presentOnWhiteList":"false",
+  "listed": "2018-04-01",
+  "sources":{
+    "hybrid-analysis":{
+      "malware":"43cf47bd8d6a906ea274edd906545ff9"
+    }
+  },
+  "accuracy":{
+    "hybrid-analysis":{
+      "feed":"30",
+      "passivedns":"-25"
+    }
+  }
+}

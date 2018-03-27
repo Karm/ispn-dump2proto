@@ -1,0 +1,12 @@
+{
+  "client_id": 3,
+  "user_id": "verylongidentifiercausingproblems",
+  "identities": [
+    "klop-579"
+  ],
+  "policy": 1,
+  "whitelist": [],
+  "blacklist": [
+    "verymaliciouswebsite.net"
+  ]
+}

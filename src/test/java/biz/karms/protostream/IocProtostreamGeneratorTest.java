@@ -1,9 +1,11 @@
 package biz.karms.protostream;
 
 import biz.karms.MyCacheManagerProvider;
+import biz.karms.crc64java.CRC64;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
+import java.math.BigInteger;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -110,6 +112,7 @@ public class IocProtostreamGeneratorTest {
             stream.forEach(fqdn -> {
                 fqdns.add(fqdn);
                 final String fqdnHashed = DigestUtils.md5Hex(fqdn);
+                final String crc64 = CRC64.getInstance().crc64String(fqdn.getBytes());
 
                 final HashMap<String, ImmutablePair<String, String>> feedToType = new HashMap<>();
 
@@ -122,7 +125,7 @@ public class IocProtostreamGeneratorTest {
                 accuracy.put("lobotomie", 30);
                 final HashMap<String, HashMap<String, Integer>> feedAccuracy = new HashMap<>();
                 feedAccuracy.put("2-some-feed-to-sink", accuracy);
-                final BlacklistedRecord blacklistedRecord = new BlacklistedRecord(fqdnHashed, Calendar.getInstance(), feedToType, feedAccuracy, (fqdns.size() % 2 == 0) ? Boolean.TRUE : Boolean.FALSE);
+                final BlacklistedRecord blacklistedRecord = new BlacklistedRecord(fqdnHashed, crc64,  Calendar.getInstance(), feedToType, feedAccuracy, (fqdns.size() % 2 == 0) ? Boolean.TRUE : Boolean.FALSE);
                 blacklistCache.put(fqdnHashed, blacklistedRecord);
                 System.out.print('.');
                 System.out.flush();

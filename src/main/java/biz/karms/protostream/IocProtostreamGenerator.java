@@ -118,7 +118,7 @@ public class IocProtostreamGenerator implements Runnable {
                 String k = entry.getKey();
                 BlacklistedRecord v = entry.getValue();
 
-                if (!v.isPresentOnWhiteList()) {
+            if (!v.getPresentOnWhiteList()) {
                     v.getSources().keySet().forEach(feeduid -> {
                         custIdFeedUidsLog.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
                             if (preparedHashes.containsKey(found.getKey())) {

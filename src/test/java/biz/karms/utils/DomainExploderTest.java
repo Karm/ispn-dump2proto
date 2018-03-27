@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 /**
  * @author Michal Karm Babacek
  */
+
 public class DomainExploderTest {
 
     private static final Logger log = Logger.getLogger(DomainExploderTest.class.getName());
