@@ -122,7 +122,7 @@ public class IoCWithCustomProtostreamGenerator implements Runnable {
                 final Set<String> bulkOfKeys = iocKeys.stream().unordered().limit(MAX_BULK_SIZE).collect(Collectors.toSet());
                 iocKeys.removeAll(bulkOfKeys);
                 // getAll on the cache - a very expensive call
-                iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys).entrySet().stream().unordered().filter(e -> !e.getValue().isPresentOnWhiteList())
+                iocWithCustom.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys).entrySet().stream().unordered().filter(e -> !e.getValue().getPresentOnWhiteList())
                         .collect(Collectors.toMap(Map.Entry::getKey, s -> Action.CHECK)));
                 log.info("IoCWithCustom: Processed bulk " + iteration + " in " + (System.currentTimeMillis() - startBulk) + " ms.");
             }

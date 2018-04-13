@@ -4,16 +4,14 @@ import biz.karms.cache.annotations.SinkitCacheName;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.WhitelistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.marshallers.CustomListMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.EndUserConfigurationMessageMarshaller;
 import biz.karms.sinkit.ejb.cache.pojo.marshallers.ImmutablePairMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.PolicyCustomListsMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.PolicyMessageMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.ResolverConfigurationMessageMarshaller;
 import biz.karms.sinkit.ejb.cache.pojo.marshallers.RuleMarshaller;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.exceptions.TransportException;
-import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller;
-import org.infinispan.protostream.FileDescriptorSource;
-import org.infinispan.protostream.SerializationContext;
-import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants;
-
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.StrategyMessageMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.StrategyParamsMessageMarshaller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,6 +19,13 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.exceptions.TransportException;
+import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller;
+import org.infinispan.protostream.FileDescriptorSource;
+import org.infinispan.protostream.SerializationContext;
+import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants;
 
 /**
  * @author Michal Karm Babacek
@@ -33,6 +38,8 @@ public class MyCacheManagerProvider {
 
     private static final String RULE_PROTOBUF_DEFINITION_RESOURCE = "/sinkitprotobuf/rule.proto";
     private static final String CUSTOM_LIST_PROTOBUF_DEFINITION_RESOURCE = "/sinkitprotobuf/customlist.proto";
+    private static final String RESOLVER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE = "/sinkitprotobuf/resolver_configuration.proto";
+    private static final String END_USER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE = "/sinkitprotobuf/end_user_configuration.proto";
 
     private Logger log = Logger.getLogger(MyCacheManagerProvider.class.getName());
 
@@ -76,6 +83,14 @@ public class MyCacheManagerProvider {
         ctx.registerMarshaller(new ImmutablePairMarshaller());
         ctx.registerProtoFiles(FileDescriptorSource.fromResources(CUSTOM_LIST_PROTOBUF_DEFINITION_RESOURCE));
         ctx.registerMarshaller(new CustomListMarshaller());
+        ctx.registerProtoFiles(FileDescriptorSource.fromResources(RESOLVER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE));
+        ctx.registerMarshaller(new ResolverConfigurationMessageMarshaller());
+        ctx.registerMarshaller(new PolicyMessageMarshaller());
+        ctx.registerMarshaller(new StrategyMessageMarshaller());
+        ctx.registerMarshaller(new StrategyParamsMessageMarshaller());
+        ctx.registerMarshaller(new PolicyCustomListsMarshaller());
+        ctx.registerProtoFiles(FileDescriptorSource.fromResources(END_USER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE));
+        ctx.registerMarshaller(new EndUserConfigurationMessageMarshaller());
 
         long timestamp = System.currentTimeMillis();
         while (!setupMetadataCache() && System.currentTimeMillis() - timestamp < hotrodTimeout) {
@@ -94,6 +109,8 @@ public class MyCacheManagerProvider {
             final RemoteCache<String, String> metadataCache = cacheManagerForIndexableCaches.getCache(ProtobufMetadataManagerConstants.PROTOBUF_METADATA_CACHE_NAME);
             metadataCache.put(RULE_PROTOBUF_DEFINITION_RESOURCE, readResource(RULE_PROTOBUF_DEFINITION_RESOURCE));
             metadataCache.put(CUSTOM_LIST_PROTOBUF_DEFINITION_RESOURCE, readResource(CUSTOM_LIST_PROTOBUF_DEFINITION_RESOURCE));
+            metadataCache.put(RESOLVER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE, this.readResource(RESOLVER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE));
+            metadataCache.put(END_USER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE, this.readResource(END_USER_CONFIGURATION_PROTOBUF_DEFINITION_RESOURCE));
             final String errors = metadataCache.get(ProtobufMetadataManagerConstants.ERRORS_KEY_SUFFIX);
             if (errors != null) {
                 log.log(Level.SEVERE, "Protobuffer files, either Rule or CustomLists contained errors:\n" + errors);
@@ -110,6 +127,13 @@ public class MyCacheManagerProvider {
             throw new IllegalArgumentException("cacheManagerForIndexableCaches must not be null, check init");
         }
         return cacheManagerForIndexableCaches;
+    }
+
+    public RemoteCacheManager getCacheManager() {
+        if (cacheManager == null) {
+            throw new IllegalArgumentException("cacheManager must not be null, check init");
+        }
+        return cacheManager;
     }
 
     public RemoteCache<String, BlacklistedRecord> getBlacklistCache() {

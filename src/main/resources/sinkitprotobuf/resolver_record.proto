@@ -1,0 +1,35 @@
+package sinkitprotobuf;
+
+message ResolverRecord {
+     repeated CustomListRecord customLists = 1;
+     repeated Threat threats = 2;
+     repeated IpRangesRecord ipRanges = 3;
+     repeated PolicyRecord policies = 4;
+}
+
+message Threat {
+    required string crc64 = 1;
+    required int32 accuracy = 2;
+    repeated int32 flags = 3;
+}
+
+message IpRangesRecord {
+    required string startIpRange = 1;
+    required string endIpRange = 2;
+    optional string identity = 3;
+    required int32 policyId = 4;
+}
+
+message PolicyRecord {
+    required int32 policyId = 1;
+    required int32 strategy = 2;
+    required int32 audit = 3;
+    required int32 block = 4;
+}
+
+message CustomListRecord {
+    required string identity = 1;
+    repeated string whitelist = 2;
+    repeated string blacklist = 3;
+    required int32 policyId = 4;
+}

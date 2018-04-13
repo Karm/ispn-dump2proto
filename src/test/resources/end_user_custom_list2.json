@@ -1,0 +1,12 @@
+{
+  "client_id": 2,
+  "user_id": "other/user",
+  "identities": [
+    "device221",
+    "user321",
+    "9865poi"
+  ],
+  "policy": 2,
+  "whitelist": [],
+  "blacklist": []
+}

@@ -1,0 +1,56 @@
+{
+  "resolver_id": 5,
+  "client_id": 3,
+  "policies": [
+    {
+      "id": 0,
+      "ip_ranges": [
+        "10.10.0.0/24"
+      ],
+      "strategy": {
+        "type": "accuracy",
+        "params": {
+          "audit": 50,
+          "block": 80,
+          "types": [
+            "phishing",
+            "blacklist"
+          ]
+        }
+      },
+      "accuracy_feeds": [
+        "hybrid-analysis"
+      ],
+      "blacklisted_feeds": [
+      ],
+      "customlists": {
+        "black": [
+          "blackportal.com"
+        ],
+        "white": [
+          "whiteportal.com"
+        ],
+        "audit": [
+          "auitportal.com"
+        ],
+        "drop": [
+          "dropportal.com"
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "ip_ranges": [
+        "10.10.0.0/8"
+      ],
+      "strategy": {
+        "type": "whitelist"
+      },
+      "customlists": {
+        "white": [
+          "whiteportal.com"
+        ]
+      }
+    }
+  ]
+}

@@ -4,6 +4,8 @@ import biz.karms.protostream.CustomlistProtostreamGenerator;
 import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
 import biz.karms.protostream.IocProtostreamGenerator;
 import biz.karms.protostream.WhitelistProtostreamGenerator;
+import biz.karms.protostream.ResolverThreatsGenerator;
+import biz.karms.protostream.threat.processing.ResolverThreatsProcessor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -76,6 +78,13 @@ public class Dump2Proto {
      */
     private static final long D2P_WHITELIST_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_WHITELIST_GENERATOR_INTERVAL_S", "0"));
 
+
+    /**
+     * Resolver generator interval
+     */
+    private static final long D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S", "3600"));
+    private static final int D2P_RESOLVER_CACHE_BATCH_SIZE_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_BATCH_SIZE_S", "20"));
+
     /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
      */
@@ -84,6 +93,7 @@ public class Dump2Proto {
     private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService resolverCacheGeneratorScheduler = Executors.newScheduledThreadPool(1);
 
     private final MyCacheManagerProvider myCacheManagerProvider;
 
@@ -92,6 +102,7 @@ public class Dump2Proto {
     private final ScheduledFuture<?> customListGeneratorHandle;
     private final ScheduledFuture<?> iocGeneratorHandle;
     private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
+    private final ScheduledFuture<?> resolverCacheGeneratorHandle;
     private final ScheduledFuture<?> whitelistGeneratorHandle;
     private final ScheduledFuture<?> allCustomlistGeneratorHandle;
 
@@ -150,6 +161,15 @@ public class Dump2Proto {
             this.iocGeneratorHandle = null;
         }
 
+        if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
+            this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
+                    .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
+                            (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
+                            D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
+        } else {
+            this.resolverCacheGeneratorHandle = null;
+        }
+
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
             this.whitelistGeneratorHandle = whitelistGeneratorScheduler
                     //this.whitelistGeneratorHandle = scheduler
@@ -174,6 +194,9 @@ public class Dump2Proto {
     public void cancelAll() {
         if (iocGeneratorHandle != null) {
             iocGeneratorHandle.cancel(true);
+        }
+        if (resolverCacheGeneratorHandle != null) {
+            resolverCacheGeneratorHandle.cancel(true);
         }
         if (customListGeneratorHandle != null) {
             customListGeneratorHandle.cancel(true);
