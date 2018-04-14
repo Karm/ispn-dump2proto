@@ -18,23 +18,24 @@ import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
-import infinispan.org.jboss.as.protocol.mgmt.RequestProcessingException;
+import lombok.Setter;
+import org.infinispan.client.hotrod.Flag;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import lombok.Setter;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.commons.util.CloseableIterator;
 
 import static java.lang.String.format;
 
@@ -47,6 +48,7 @@ public class ResolverThreatsProcessor {
 
     private static final int MIN_BATCH_SIZE = 10;
     private static final int MAX_BATCH_SIZE = 100;
+    private static final int MAX_BULK_SIZE = 10_000;
 
     private final int batchSize;
     private final RemoteCacheManager remoteCacheManager;
@@ -61,9 +63,10 @@ public class ResolverThreatsProcessor {
 
     /**
      * Constructor creates this processor
-     * @param remoteCacheManager remoteCacheManager which accesses remote caches
+     *
+     * @param remoteCacheManager                 remoteCacheManager which accesses remote caches
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
-     * @param batchSize resolvers' batch size (how many resolvers will be processed in a chunk)
+     * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
     public ResolverThreatsProcessor(RemoteCacheManager remoteCacheManager, RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
@@ -74,6 +77,7 @@ public class ResolverThreatsProcessor {
 
     /**
      * Method generates resolvers' files
+     *
      * @return boolean if the all resolvers have been exported
      */
     public boolean process() {
@@ -86,62 +90,83 @@ public class ResolverThreatsProcessor {
         return processResolversFuture.join();
     }
 
-
     /**
      * Method returns all ResolverConfiguration data
+     *
      * @param context processing context
      * @return updated processing context
      */
     ProcessingContext fetchResolverConfigurations(ProcessingContext context) {
+        logger.log(Level.INFO, "Entering fetchResolverConfigurations...");
+        final long start = System.currentTimeMillis();
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.resolver_configuration.name());
 
         final Set<Integer> keys = resolverConfigurationCache.keySet();
         final Collection<ResolverConfiguration> configurations = resolverConfigurationCache.getAll(keys).values();
         context.setResolverConfigurations(configurations);
+        logger.log(Level.INFO, "fetchResolverConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
     }
 
     /**
      * Method returns all endUserConfiguration data
+     *
      * @param context processing context
      * @return updated processing context
      */
     ProcessingContext fetchEndUserConfigurations(ProcessingContext context) {
+        logger.log(Level.INFO, "Entering fetchEndUserConfigurations...");
+        final long start = System.currentTimeMillis();
         final RemoteCache<String, EndUserConfiguration> endUserConfigurationRemoteCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.end_user_configuration.name());
 
         final Set<String> keys = endUserConfigurationRemoteCache.keySet();
         final Collection<EndUserConfiguration> endUserRecords = endUserConfigurationRemoteCache.getAll(keys).values();
         context.setEndUserRecords(endUserRecords);
+        logger.log(Level.INFO, "fetchEndUserConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
     }
 
     /**
      * Method returns all blacklistedRecord data
+     *
      * @param context processing context
      * @return updated processing context
      */
     ProcessingContext fetchBlacklistedRecord(ProcessingContext context) {
-        final RemoteCache<String, BlacklistedRecord> blacklistedRecordRemoteCache = remoteCacheManager.getCache(SinkitCacheName.infinispan_blacklist.name());
+        logger.log(Level.INFO, "Entering fetchBlacklistedRecord...");
+        final long start = System.currentTimeMillis();
+        final RemoteCache<String, BlacklistedRecord> cache = remoteCacheManager.getCache(SinkitCacheName.infinispan_blacklist.name());
+        final Set<String> iocKeys = new HashSet<>(cache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
+        final Collection<BlacklistedRecord> blacklistedRecords = new ArrayList<>(iocKeys.size());
+        final int bulks = (iocKeys.size() % MAX_BULK_SIZE == 0) ? iocKeys.size() / MAX_BULK_SIZE : iocKeys.size() / MAX_BULK_SIZE + 1;
+        logger.log(Level.INFO, "fetchBlacklistedRecord: There are " + iocKeys.size() + " ioc keys to get data for in " + bulks + " bulks. Ioc keys retrieval took " + (System.currentTimeMillis() - start) + " ms.");
 
-        final Collection<BlacklistedRecord> blacklistedRecords = new ArrayList<>();
-        try (CloseableIterator<Map.Entry<Object, Object>> it = blacklistedRecordRemoteCache.retrieveEntries(null, 1000)) {
-            while (it.hasNext()) {
-                blacklistedRecords.add((BlacklistedRecord) it.next().getValue());
-            }
+        final long startBulks = System.currentTimeMillis();
+        for (int iteration = 0; iteration < bulks; iteration++) {
+            final long startBulk = System.currentTimeMillis();
+            final Set<String> bulkOfKeys = iocKeys.stream().unordered().limit(MAX_BULK_SIZE).collect(Collectors.toSet());
+            iocKeys.removeAll(bulkOfKeys);
+            // getAll on the cache - a very expensive call
+            blacklistedRecords.addAll(cache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys).values());
+            logger.info("fetchBlacklistedRecord: Retrieved bulk " + iteration + " in " + (System.currentTimeMillis() - startBulk) + " ms.");
         }
+        logger.info("fetchBlacklistedRecord: All bulks retrieved in " + (System.currentTimeMillis() - startBulks) + " ms.");
+
         context.setBlacklistedRecords(blacklistedRecords);
+        logger.log(Level.INFO, "fetchBlacklistedRecord finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
     }
 
     /**
      * Method processes all resolvers stored in the processing context in batches (size is specified as parameter in generate method)
+     *
      * @param context processing context
      * @return number of processed resolvers
      */
     boolean processResolvers(final ProcessingContext context) {
-        logger.log(Level.FINE, "Entering processResolvers...");
+        logger.log(Level.INFO, "Entering processResolvers...");
         final long start = System.currentTimeMillis();
         final List<ResolverConfiguration> allResolvers = new ArrayList<>(context.getResolverConfigurations());
 
@@ -152,15 +177,15 @@ public class ResolverThreatsProcessor {
                 .reduce(0, Integer::sum);
 
         final boolean hasBeenAllResolversProcessed = allResolvers.size() == countOfProcessedResolvers;
-        logger.log(Level.FINE, "Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
-
+        logger.log(Level.INFO, "Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
         return hasBeenAllResolversProcessed;
     }
 
     /**
      * Method processes batch of resolvers
+     *
      * @param resolverConfigurations resolvers to be processed
-     * @param context processing context
+     * @param context                processing context
      * @return number of processed resolvers
      */
     int processResolversBatch(final List<ResolverConfiguration> resolverConfigurations, final ProcessingContext context) {

@@ -1,9 +1,10 @@
 package biz.karms.protostream.threat.task;
 
-import biz.karms.protostream.threat.processing.ProcessingContext;
 import biz.karms.protostream.threat.domain.IpRangesRecord;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
+import biz.karms.protostream.threat.processing.ProcessingContext;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,9 +12,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 /**
  * Task responsible for creating IpRangesRecords from ResolverConfiguration
@@ -22,7 +24,7 @@ public class ResolverConfigurationIpRangesTask {
 
     private final ResolverConfiguration resolverConfiguration;
     private final ProcessingContext context;
-
+    private static final Logger logger = Logger.getLogger(ResolverConfigurationIpRangesTask.class.getName());
 
     public ResolverConfigurationIpRangesTask(ResolverConfiguration resolverConfiguration, ProcessingContext context) {
         this.resolverConfiguration = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null");
@@ -31,9 +33,12 @@ public class ResolverConfigurationIpRangesTask {
 
     /**
      * Method transforms ResolverConfiguration into required IpRangesRecords
+     *
      * @return list of ip ranges records
      */
     public List<IpRangesRecord> processData() {
+        logger.log(Level.INFO, "Entering processData...");
+        final long start = System.currentTimeMillis();
         final List<IpRangesRecord> ipRangesRecords = this.resolverConfiguration.getPolicies().stream()
                 .map(currentPolicy -> Optional.ofNullable(currentPolicy.getIpRanges()).map(Collection::stream).orElse(Stream.empty()).map(ipRange -> {
                     try {
@@ -45,6 +50,7 @@ public class ResolverConfigurationIpRangesTask {
                 .collect(ArrayList::new, List::addAll, List::addAll);
 
         ipRangesRecords.sort(new IpRangesComparator());
+        logger.log(Level.INFO, "processData finished in " + (System.currentTimeMillis() - start) + " ms.");
         return ipRangesRecords;
     }
 

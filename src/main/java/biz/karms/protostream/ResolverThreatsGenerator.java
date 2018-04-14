@@ -21,9 +21,9 @@ public class ResolverThreatsGenerator implements Runnable {
 
     @Override
     public void run() {
-        logger.log(Level.FINE, "Starting exporting resolvers' cache data");
+        logger.log(Level.INFO, "Starting exporting resolvers' cache data...");
         long start = System.currentTimeMillis();
         final boolean isAllProcessed = new ResolverThreatsProcessor(remoteCacheManager, remoteCacheManagerForIndexableCaches, batchSize).process();
-        logger.log(Level.FINE, "Exporting of resolvers' cache data has finished " + (isAllProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Exporting of resolvers' cache data has finished " + (isAllProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
     }
 }

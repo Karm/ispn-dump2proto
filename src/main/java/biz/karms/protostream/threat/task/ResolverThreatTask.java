@@ -11,6 +11,7 @@ import biz.karms.sinkit.resolver.Policy;
 import biz.karms.sinkit.resolver.PolicyCustomList;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.StrategyType;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,13 +47,16 @@ public class ResolverThreatTask {
 
     /**
      * Method creates Threats from {@link BlacklistedRecord}s which match to ResolverConfiguration
+     *
      * @return map keeps threats entities (entry = key is BlacklistedRecord.blackListedDomainOrIP, value is Threat)
      */
     public Map<String, Threat> processData() {
+        logger.log(Level.INFO, "Entering processData...");
+        final long start = System.currentTimeMillis();
         final Callable<Map<String, Threat>> processing = () -> context.getBlacklistedRecords().parallelStream()
                 .map(record -> {
-                    logger.log(Level.FINEST, "Starting processing of blacklisted record '{}' for resolver '#{}'",
-                            new Object[]{ record, this.resolverConfiguration.getResolverId() });
+                    logger.log(Level.INFO, "Starting processing of blacklisted record '{}' for resolver '#{}'",
+                            new Object[]{record, this.resolverConfiguration.getResolverId()});
 
                     final Threat threat = new Threat(record.getCrc64Hash());
                     threat.setAccuracy(computeMaxAccuracy(record));
@@ -62,8 +66,8 @@ public class ResolverThreatTask {
                         addFlagToThreatSlot(threat, record, policyIdx, currentPolicy);
                     }
 
-                    logger.log(Level.FINEST, "Processing of blacklisted record '{}' for resolver '#{}' finished",
-                            new Object[]{ record, this.resolverConfiguration.getResolverId() });
+                    logger.log(Level.INFO, "Processing of blacklisted record '{}' for resolver '#{}' finished",
+                            new Object[]{record, this.resolverConfiguration.getResolverId()});
 
                     return threat;
                 })
@@ -74,6 +78,7 @@ public class ResolverThreatTask {
 
         final ForkJoinPool threadPool = new ForkJoinPool(threadsCount);
         try {
+            logger.log(Level.INFO, "processData finished in " + (System.currentTimeMillis() - start) + " ms.");
             return threadPool.submit(processing).get();
         } catch (Exception e) {
             throw new ResolverProcessingException(e, resolverConfiguration, ResolverProcessingTask.THREAT_TASK);
@@ -84,10 +89,13 @@ public class ResolverThreatTask {
 
     /**
      * Method post processes the data and modifies them according to the resolveConfiguration.customList settings
+     *
      * @param resolverThreatData threats related to resolver which is being processed by this task
      * @return final list of threats
      */
     public List<Threat> postProcessData(Map<String, Threat> resolverThreatData) {
+        logger.log(Level.INFO, "Entering postProcessData...");
+        final long start = System.currentTimeMillis();
         for (int policyIdx = 0; policyIdx < this.resolverConfiguration.getPolicies().size(); policyIdx++) {
             final Policy currentPolicy = this.resolverConfiguration.getPolicies().get(policyIdx);
             final int slotIdx = policyIdx;
@@ -112,16 +120,16 @@ public class ResolverThreatTask {
                     whitelists -> handleCustomLists(whitelists, Flag.whitelist, slotIdx, () -> resolverThreatData)
             );
         }
-
+        logger.log(Level.INFO, "postProcessData finished in " + (System.currentTimeMillis() - start) + " ms.");
         return new ArrayList<>(resolverThreatData.values());
-
     }
 
     /**
      * Method which add Flag into threat's slot
-     * @param threat the threat to be updated
+     *
+     * @param threat  the threat to be updated
      * @param slotIdx slot idx to be updated
-     * @param policy policy holds configuration
+     * @param policy  policy holds configuration
      */
     void addFlagToThreatSlot(Threat threat, BlacklistedRecord record, int slotIdx, Policy policy) {
         final StrategyType strategyType = policy.getStrategy().getStrategyType();
@@ -138,6 +146,7 @@ public class ResolverThreatTask {
 
     /**
      * Method checks if the threat(accuracy)'s slot should be updated or not
+     *
      * @param threat
      * @param record
      * @param policy
@@ -150,6 +159,7 @@ public class ResolverThreatTask {
 
     /**
      * Methods checks if the given record matches according to the type and accuracy feed rules
+     *
      * @param record record to be tested
      * @param policy policy from which is obtained configuration
      * @return true / false
@@ -171,6 +181,7 @@ public class ResolverThreatTask {
 
     /**
      * Method checks if the given threat's accuracy value is at least bigger or equal to strategy audit
+     *
      * @param threat threat to be checked
      * @param policy policy from which is obtained configuration
      * @return true / false
@@ -181,6 +192,7 @@ public class ResolverThreatTask {
 
     /**
      * Method checks if the given record matches to the blacklists rules
+     *
      * @param record record to be tested
      * @param policy policy from which is obtained configuration
      * @return true / false
@@ -198,6 +210,7 @@ public class ResolverThreatTask {
 
     /**
      * Gets max sum of accuracy's items
+     *
      * @return max sum
      */
     Integer computeMaxAccuracy(BlacklistedRecord record) {

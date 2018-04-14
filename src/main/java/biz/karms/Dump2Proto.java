@@ -3,9 +3,8 @@ package biz.karms;
 import biz.karms.protostream.CustomlistProtostreamGenerator;
 import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
 import biz.karms.protostream.IocProtostreamGenerator;
-import biz.karms.protostream.WhitelistProtostreamGenerator;
 import biz.karms.protostream.ResolverThreatsGenerator;
-import biz.karms.protostream.threat.processing.ResolverThreatsProcessor;
+import biz.karms.protostream.WhitelistProtostreamGenerator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -128,8 +127,8 @@ public class Dump2Proto {
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
-            //this.allIocWithCustomlistGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
-            this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
+            this.allIocWithCustomlistGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
+                    //this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
                     //this.allIocWithCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.ALL),
@@ -138,7 +137,6 @@ public class Dump2Proto {
         } else {
             this.allIocWithCustomlistGeneratorHandle = null;
         }
-
 
         if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
             this.customListGeneratorHandle = customListGeneratorScheduler
@@ -162,7 +160,8 @@ public class Dump2Proto {
         }
 
         if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
-            this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
+            //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
+            this.resolverCacheGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
                     .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);

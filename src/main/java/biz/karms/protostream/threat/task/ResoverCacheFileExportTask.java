@@ -2,6 +2,8 @@ package biz.karms.protostream.threat.task;
 
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
+import org.apache.commons.codec.digest.DigestUtils;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
@@ -10,7 +12,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.codec.digest.DigestUtils;
 
 import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
 import static biz.karms.Dump2Proto.attr;
@@ -24,17 +25,20 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteBuffer> {
     private static final String fileNameTemplate = "/%s_resolver_cache.bin";
 
+    private static final Logger logger = Logger.getLogger(ResoverCacheFileExportTask.class.getName());
+
     private final String pathTemplate;
 
     public ResoverCacheFileExportTask() {
         this.pathTemplate = GENERATED_PROTOFILES_DIRECTORY + fileNameTemplate;
     }
 
-
     /**
      * @see biz.karms.protostream.threat.task.ResolverCacheExportTask#export
      */
     public void export(ResolverConfiguration resolverConfiguration, final ByteBuffer data) {
+        logger.log(Level.INFO, "Entering export...");
+        final long start = System.currentTimeMillis();
         final Integer resolverId = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null").getResolverId();
 
         final String path = format(pathTemplate, resolverId);
@@ -58,7 +62,6 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                     ResolverProcessingTask.EXPORTING);
         }
 
-
         // if files are prepared - just switch them to 'latest'
         try {
             Files.move(Paths.get(tmpMd5Path), Paths.get(md5Path), REPLACE_EXISTING);
@@ -67,5 +70,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
             throw new ResolverProcessingException(format("The following exception occurred when the tmp files '%s'/'%s' were renamed to '%s'/'%s'", tmpPath, tmpMd5Path, path, md5Path), resolverConfiguration,
                     ResolverProcessingTask.EXPORTING);
         }
+
+        logger.log(Level.INFO, "export finished in " + (System.currentTimeMillis() - start) + " ms.");
     }
 }
