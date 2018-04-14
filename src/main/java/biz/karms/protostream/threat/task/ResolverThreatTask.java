@@ -55,7 +55,7 @@ public class ResolverThreatTask {
         final long start = System.currentTimeMillis();
         final Callable<Map<String, Threat>> processing = () -> context.getBlacklistedRecords().parallelStream()
                 .map(record -> {
-                    logger.log(Level.INFO, "Starting processing of blacklisted record '{}' for resolver '#{}'",
+                    logger.log(Level.FINEST, "Starting processing of blacklisted record '{}' for resolver '#{}'",
                             new Object[]{record, this.resolverConfiguration.getResolverId()});
 
                     final Threat threat = new Threat(record.getCrc64Hash());
@@ -66,7 +66,7 @@ public class ResolverThreatTask {
                         addFlagToThreatSlot(threat, record, policyIdx, currentPolicy);
                     }
 
-                    logger.log(Level.INFO, "Processing of blacklisted record '{}' for resolver '#{}' finished",
+                    logger.log(Level.FINEST, "Processing of blacklisted record '{}' for resolver '#{}' finished",
                             new Object[]{record, this.resolverConfiguration.getResolverId()});
 
                     return threat;
