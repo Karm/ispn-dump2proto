@@ -137,10 +137,12 @@ public class ResolverThreatsProcessor {
 
     /**
      * Method processes all resolvers stored in the processing context in batches (size is specified as parameter in generate method)
-     * @param context processing contex
+     * @param context processing context
      * @return number of processed resolvers
      */
     boolean processResolvers(final ProcessingContext context) {
+        logger.log(Level.FINE, "Entering processResolvers...");
+        final long start = System.currentTimeMillis();
         final List<ResolverConfiguration> allResolvers = new ArrayList<>(context.getResolverConfigurations());
 
         final int loops = (allResolvers.size() + this.batchSize - 1) / this.batchSize;
@@ -150,7 +152,7 @@ public class ResolverThreatsProcessor {
                 .reduce(0, Integer::sum);
 
         final boolean hasBeenAllResolversProcessed = allResolvers.size() == countOfProcessedResolvers;
-        logger.log(Level.FINE, "Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully"));
+        logger.log(Level.FINE, "Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
 
         return hasBeenAllResolversProcessed;
     }

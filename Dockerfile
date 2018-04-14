@@ -22,6 +22,8 @@ ADD start.sh /opt/dump2proto/
 RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
         export DBG_OPTS="-Dtrace=org.infinispan -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${D2P_DBG_PORT:-1661} -Xnoagent -Djava.compiler=NONE"; \
     fi; \
+    echo 'handlers = java.util.logging.ConsoleHandler' > /opt/dump2proto/logging.properties && \
+    echo "${D2P_LOGGING:-.level=ALL}" >> /opt/dump2proto/logging.properties && \
     echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
     echo 'start' >> /opt/dump2proto/start.sh && \
     echo 'export JAVA_OPTS="\
@@ -31,22 +33,26 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
  -XX:MetaspaceSize=${D2P_METASPACE_SIZE:-128m} \
  -XX:MaxMetaspaceSize=${D2P_MAX_METASPACE_SIZE:-512m} \
  -XX:+UseG1GC \
- -XX:MaxGCPauseMillis=300 \
- -XX:InitiatingHeapOccupancyPercent=60 \
+ -XX:MaxGCPauseMillis=${D2P_MAX_GC_PAUSE_MILLIS:-2000} \
+ -XX:InitiatingHeapOccupancyPercent=${D2P_INITIAL_HEAP_OCCUPANCY_PERCENT:-75} \
  -XX:+HeapDumpOnOutOfMemoryError \
  -XX:HeapDumpPath=/opt/dump2proto \
 "' >> /opt/dump2proto/start.sh && \
    echo '\
  java \
  ${JAVA_OPTS} \
- -DD2P_GENERATED_PROTOFILES_DIRECTORY=${D2P_GENERATED_PROTOFILES_DIRECTORY:-/exports} \
+ -Djava.util.logging.config.file="/opt/dump2proto/logging.properties" \
+ -DD2P_GENERATED_PROTOFILES_DIRECTORY="/exports" \
  -DD2P_HOTROD_HOST=${D2P_HOTROD_HOST:-192.168.122.156} \
  -DD2P_HOTROD_PORT=${D2P_HOTROD_PORT:-11322} \
  -DD2P_HOTROD_CONN_TIMEOUT_S=${D2P_HOTROD_CONN_TIMEOUT_S:-60} \
+ -DD2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S=${D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S:-30} \
+ -DD2P_ALL_IOC_GENERATOR_INTERVAL_S=${D2P_ALL_IOC_GENERATOR_INTERVAL_S:-30} \
  -DD2P_CUSTOMLIST_GENERATOR_INTERVAL_S=${D2P_CUSTOMLIST_GENERATOR_INTERVAL_S:-30} \
  -DD2P_IOC_GENERATOR_INTERVAL_S=${D2P_IOC_GENERATOR_INTERVAL_S:-30} \
- -DD2P_ALL_IOC_GENERATOR_INTERVAL_S=${D2P_ALL_IOC_GENERATOR_INTERVAL_S:-30} \
- -DD2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S=${D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S:-30} \
+ -DD2P_RESOLVER_CACHE_BATCH_SIZE_S=${D2P_RESOLVER_CACHE_BATCH_SIZE_S:-30} \
+ -DD2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S=${D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S:-30} \
+ -DD2P_RESOLVER_THREAT_TASK_RECORD_BATCH_SIZE_S=${D2P_RESOLVER_THREAT_TASK_RECORD_BATCH_SIZE_S:-30} \
  -DD2P_WHITELIST_GENERATOR_INTERVAL_S=${D2P_WHITELIST_GENERATOR_INTERVAL_S:-30} \
  ${DBG_OPTS} \
  -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}.jar \
