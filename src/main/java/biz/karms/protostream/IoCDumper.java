@@ -1,13 +1,11 @@
 package biz.karms.protostream;
 
+import biz.karms.protostream.ioc.marshallers.AccuracyMarshaller;
 import biz.karms.protostream.ioc.marshallers.BlacklistedRecordListMarshaller;
 import biz.karms.protostream.ioc.marshallers.BlacklistedRecordMarshaller;
 import biz.karms.protostream.ioc.marshallers.NameNumberMarshaller;
 import biz.karms.protostream.ioc.marshallers.SourceMarshaller;
 import biz.karms.protostream.ioc.marshallers.TypeIocIDMarshaller;
-import biz.karms.protostream.marshallers.ActionMarshaller;
-import biz.karms.protostream.marshallers.CoreCacheMarshaller;
-import biz.karms.protostream.ioc.marshallers.AccuracyMarshaller;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.infinispan.client.hotrod.Flag;
@@ -26,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,7 +50,7 @@ public class IoCDumper implements Runnable {
     private static final String iocDumpFilePathTmp = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.tmp";
     private static final String iocDumpFileMd5 = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5";
     private static final String iocDumpFileMd5Tmp = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5.tmp";
-    public static final String BLACKLISTED_RECORD_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
+    private static final String BLACKLISTED_RECORD_PROTOBUF = "/sinkitprotobuf/blacklisted_record.proto";
 
     public IoCDumper(final RemoteCache<String, BlacklistedRecord> blacklistCache) {
         this.blacklistCache = blacklistCache;

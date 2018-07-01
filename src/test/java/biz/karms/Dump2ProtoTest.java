@@ -4,7 +4,6 @@ import biz.karms.crc64java.CRC64;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
-import java.math.BigInteger;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -45,7 +44,7 @@ public class Dump2ProtoTest {
         };
     }
 
-    @Test(dataProvider = "domainFilesProvider")
+    @Test(dataProvider = "domainFilesProvider", enabled = false)
     void iocGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);
 

@@ -10,6 +10,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.junit.Ignore;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -40,7 +41,7 @@ public class IocProtostreamGeneratorTest {
         };
     }
 
-    @Test(dataProvider = "domainFilesProvider")
+    @Test(dataProvider = "domainFilesProvider", enabled = false)
     void iocProtostreamGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);
 

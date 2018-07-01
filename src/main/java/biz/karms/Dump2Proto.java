@@ -1,6 +1,7 @@
 package biz.karms;
 
 import biz.karms.protostream.CustomlistProtostreamGenerator;
+import biz.karms.protostream.IoCDumper;
 import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
 import biz.karms.protostream.IocProtostreamGenerator;
 import biz.karms.protostream.ResolverThreatsGenerator;
@@ -50,7 +51,7 @@ public class Dump2Proto {
      * Scheduling
      */
     private static final int MIN_DELAY_BEFORE_START_S = 10;
-    private static final int MAX_DELAY_BEFORE_START_S = 60;
+    private static final int MAX_DELAY_BEFORE_START_S = 180;
 
     /**
      * 5 - 10 minutes is a sane value, i.e. 300s
@@ -85,6 +86,12 @@ public class Dump2Proto {
     private static final int D2P_RESOLVER_CACHE_BATCH_SIZE_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_BATCH_SIZE_S", "20"));
 
     /**
+     * Cache backup, IoC dumper
+     */
+    private static final long D2P_IOC_DUMPER_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_IOC_DUMPER_INTERVAL_S", "0"));
+
+
+    /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
      */
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -104,6 +111,7 @@ public class Dump2Proto {
     private final ScheduledFuture<?> resolverCacheGeneratorHandle;
     private final ScheduledFuture<?> whitelistGeneratorHandle;
     private final ScheduledFuture<?> allCustomlistGeneratorHandle;
+    private final ScheduledFuture<?> iocDumperHandle;
 
     private static class ShutdownHook extends Thread {
         private final MyCacheManagerProvider myCacheManagerProvider;
@@ -125,6 +133,15 @@ public class Dump2Proto {
         this.myCacheManagerProvider = myCacheManagerProvider;
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
+
+        if (D2P_IOC_DUMPER_INTERVAL_S > 0) {
+            this.iocDumperHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
+                    .scheduleAtFixedRate(new IoCDumper(myCacheManagerProvider.getBlacklistCache()),
+                            (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
+                            D2P_IOC_DUMPER_INTERVAL_S, SECONDS);
+        } else {
+            this.iocDumperHandle = null;
+        }
 
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
             this.allIocWithCustomlistGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
@@ -209,6 +226,9 @@ public class Dump2Proto {
         }
         if (allCustomlistGeneratorHandle != null) {
             allCustomlistGeneratorHandle.cancel(true);
+        }
+        if (iocDumperHandle != null) {
+            iocDumperHandle.cancel(true);
         }
     }
 
