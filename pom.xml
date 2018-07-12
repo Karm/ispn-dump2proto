@@ -85,7 +85,7 @@
         <dependency>
             <groupId>org.infinispan.protostream</groupId>
             <artifactId>protostream</artifactId>
-            <version>3.0.7.Final-karm-SNAPSHOT</version>
+            <version>3.0.7.Final-karm-1-SNAPSHOT</version>
         </dependency>
 
         <dependency>

@@ -50,7 +50,7 @@ public class IoCDumper implements Runnable {
     private static final String iocDumpFilePathTmp = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.tmp";
     private static final String iocDumpFileMd5 = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5";
     private static final String iocDumpFileMd5Tmp = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5.tmp";
-    private static final String BLACKLISTED_RECORD_PROTOBUF = "/sinkitprotobuf/blacklisted_record.proto";
+    public static final String BLACKLISTED_RECORD_PROTOBUF = "/sinkitprotobuf/blacklisted_record.proto";
 
     public IoCDumper(final RemoteCache<String, BlacklistedRecord> blacklistCache) {
         this.blacklistCache = blacklistCache;
