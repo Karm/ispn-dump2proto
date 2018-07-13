@@ -19,10 +19,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static biz.karms.protostream.IoCDumper.BLACKLISTED_RECORD_PROTOBUF;
+import static java.lang.Math.min;
 
 /**
  * @author Michal Karm Babacek
@@ -33,6 +39,9 @@ public class CacheUploader {
     private static final long D2P_HOTROD_CONN_TIMEOUT_S = (System.getProperties().containsKey("D2P_HOTROD_CONN_TIMEOUT_S")) ?
             Integer.parseInt(System.getProperty("D2P_HOTROD_CONN_TIMEOUT_S")) :
             300;
+
+    private static final int BUCKET_SIZE = 2_000;
+
     private static final Logger log = Logger.getLogger(CacheUploader.class.getName());
 
     private final MyCacheManagerProvider myCacheManagerProvider;
@@ -78,19 +87,36 @@ public class CacheUploader {
         ctx.registerMarshaller(new BlacklistedRecordMarshaller());
         ctx.registerMarshaller(new BlacklistedRecordListMarshaller());
 
-
         final ArrayList<BlacklistedRecord> records;
 
         long start = System.currentTimeMillis();
 
         if (protobuffer.exists()) {
             try (InputStream is = new FileInputStream(protobuffer)) {
+                final AtomicBoolean running = new AtomicBoolean(true);
+                Runnable spinner = () -> {
+                    final Random rng = new Random();
+                    while (running.get()) {
+                        System.out.print("\033[1K\033[1G");
+                        System.out.print("Loading protobuffer... ");
+                        for (int i = 0; i < rng.nextInt(80); i++) System.out.print("▍");
+                        System.out.flush();
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                };
+                new Thread(spinner).start();
                 records = ProtobufUtil.readFrom(ctx, is, ArrayList.class);
+                running.set(false);
             } catch (IOException e) {
                 e.printStackTrace();
                 log.log(Level.SEVERE, String.format("%s being empty / non-deserializable is unexpected. Aborting.", protobuffer.getAbsolutePath()));
                 return;
             }
+            System.out.print(System.lineSeparator());
             log.log(Level.INFO, "Deserialization of " + records.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
         } else {
             log.log(Level.SEVERE, String.format("%s does not exist. Aborting.", protobuffer.getAbsolutePath()));
@@ -100,20 +126,23 @@ public class CacheUploader {
         start = System.currentTimeMillis();
 
         final RemoteCache<String, BlacklistedRecord> blacklistedCache = myCacheManagerProvider.getBlacklistCache();
-        int c = 1;
-        int rsize = records.size();
-        for (BlacklistedRecord ioc : records) {
+
+        int c = 0;
+        int rSize = records.size();
+        final int numOfBuckets = (rSize % BUCKET_SIZE == 0) ? rSize / BUCKET_SIZE : rSize / BUCKET_SIZE + 1;
+        System.out.print(System.lineSeparator());
+        for (int iteration = 0; iteration < numOfBuckets; iteration++) {
+            int toTake = min(records.size() - c, BUCKET_SIZE);
+            final List<BlacklistedRecord> subList = records.subList(c, c + toTake);
+            c += toTake;
             System.out.print("\033[1K\033[1G");
-            System.out.print(String.format("%d/%d ", c, rsize));
-            for (int i = 0; i < c % 80; i++) System.out.print("▍");
+            System.out.print(String.format("%d/%d ", c, rSize));
+            for (int i = 0; i < (c + iteration) % 80; i++) System.out.print("▍");
             System.out.flush();
-            blacklistedCache.put(ioc.getBlackListedDomainOrIP(), ioc);
-            c++;
+            blacklistedCache.putAll(subList.stream().collect(Collectors.toMap(BlacklistedRecord::getBlackListedDomainOrIP, Function.identity())));
         }
         System.out.print(System.lineSeparator());
-
-        log.log(Level.INFO, "Upload of " + records.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
-
+        log.log(Level.INFO, String.format("Upload of %d records took %d ms.", records.size(), (System.currentTimeMillis() - start)));
     }
 
     public MyCacheManagerProvider getMyCacheManagerProvider() {
