@@ -1,4 +1,4 @@
-FROM fedora:25
+FROM fedora:28
 MAINTAINER Michal Karm Babacek <karm@email.cz>
 
 ENV DEPS      java-1.8.0-openjdk-devel.x86_64 jna.x86_64 nfs-utils libnfsidmap
