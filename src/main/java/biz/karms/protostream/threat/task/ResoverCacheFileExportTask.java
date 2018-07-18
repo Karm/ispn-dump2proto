@@ -24,6 +24,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  */
 public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteBuffer> {
     private static final String fileNameTemplate = "/%s_resolver_cache.bin";
+    private static final long MIN_VALID_FILE_SIZE_BYTE = 2;
 
     private static final Logger logger = Logger.getLogger(ResoverCacheFileExportTask.class.getName());
 
@@ -36,7 +37,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
     /**
      * @see biz.karms.protostream.threat.task.ResolverCacheExportTask#export
      */
-    public void export(ResolverConfiguration resolverConfiguration, final ByteBuffer data) {
+    public void export(final ResolverConfiguration resolverConfiguration, final ByteBuffer data) {
         logger.log(Level.INFO, "Entering export...");
         final long start = System.currentTimeMillis();
         final Integer resolverId = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null").getResolverId();
@@ -64,13 +65,18 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
 
         // if files are prepared - just switch them to 'latest'
         try {
-            Files.move(Paths.get(tmpMd5Path), Paths.get(md5Path), REPLACE_EXISTING);
-            Files.move(Paths.get(tmpPath), Paths.get(path), REPLACE_EXISTING);
+            if (Paths.get(tmpPath).toFile().length() > MIN_VALID_FILE_SIZE_BYTE) {
+                Files.move(Paths.get(tmpMd5Path), Paths.get(md5Path), REPLACE_EXISTING);
+                Files.move(Paths.get(tmpPath), Paths.get(path), REPLACE_EXISTING);
+            } else {
+                throw new ResolverProcessingException(format("Export failed in %d ms, the file %s is smaller or equal to %d bytes and that is certainly invalid.",
+                        (System.currentTimeMillis() - start), tmpPath, MIN_VALID_FILE_SIZE_BYTE), resolverConfiguration, ResolverProcessingTask.EXPORTING);
+            }
         } catch (IOException e) {
             throw new ResolverProcessingException(format("The following exception occurred when the tmp files '%s'/'%s' were renamed to '%s'/'%s'", tmpPath, tmpMd5Path, path, md5Path), resolverConfiguration,
                     ResolverProcessingTask.EXPORTING);
         }
 
-        logger.log(Level.INFO, "export finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Export finished in " + (System.currentTimeMillis() - start) + " ms.");
     }
 }
