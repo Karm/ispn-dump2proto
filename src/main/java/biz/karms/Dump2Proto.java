@@ -50,8 +50,8 @@ public class Dump2Proto {
     /**
      * Scheduling
      */
-    private static final int MIN_DELAY_BEFORE_START_S = 10;
-    private static final int MAX_DELAY_BEFORE_START_S = 180;
+    private static final int MIN_DELAY_BEFORE_START_S = 60;
+    private static final int MAX_DELAY_BEFORE_START_S = 240;
 
     /**
      * 5 - 10 minutes is a sane value, i.e. 300s
@@ -135,7 +135,7 @@ public class Dump2Proto {
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
         if (D2P_IOC_DUMPER_INTERVAL_S > 0) {
-            this.iocDumperHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
+            this.iocDumperHandle = scheduler // shared scheduler with IocProtostreamGenerator
                     .scheduleAtFixedRate(new IoCDumper(myCacheManagerProvider.getBlacklistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_IOC_DUMPER_INTERVAL_S, SECONDS);
@@ -144,7 +144,7 @@ public class Dump2Proto {
         }
 
         if (D2P_ALL_IOC_GENERATOR_INTERVAL_S > 0) {
-            this.allIocWithCustomlistGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
+            this.allIocWithCustomlistGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
                     //this.allIocWithCustomlistGeneratorHandle = iocWithCustomlistGeneratorScheduler
                     //this.allIocWithCustomlistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
@@ -166,7 +166,7 @@ public class Dump2Proto {
         }
 
         if (D2P_IOC_GENERATOR_INTERVAL_S > 0) {
-            this.iocGeneratorHandle = iocGeneratorScheduler
+            this.iocGeneratorHandle = scheduler
                     //this.iocGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new IocProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache()),
@@ -178,7 +178,7 @@ public class Dump2Proto {
 
         if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
             //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
-            this.resolverCacheGeneratorHandle = iocGeneratorScheduler // shared scheduler with IocProtostreamGenerator
+            this.resolverCacheGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
                     .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
@@ -187,7 +187,7 @@ public class Dump2Proto {
         }
 
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
-            this.whitelistGeneratorHandle = whitelistGeneratorScheduler
+            this.whitelistGeneratorHandle = scheduler
                     //this.whitelistGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new WhitelistProtostreamGenerator(myCacheManagerProvider.getWhitelistCache()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
@@ -197,7 +197,7 @@ public class Dump2Proto {
         }
 
         if (D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
-            this.allCustomlistGeneratorHandle = scheduler
+            this.allCustomlistGeneratorHandle = customListGeneratorScheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.CUSTOM_LISTS_ONLY),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
