@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat.task;
 
+import biz.karms.crc64java.CRC64;
 import biz.karms.protostream.threat.domain.Flag;
 import biz.karms.protostream.threat.domain.Threat;
 import biz.karms.protostream.threat.processing.ProcessingContext;
@@ -11,15 +12,6 @@ import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.Strategy;
 import biz.karms.sinkit.resolver.StrategyParams;
 import biz.karms.sinkit.resolver.StrategyType;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -29,6 +21,16 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.is;
@@ -58,7 +60,7 @@ public class ResolverThreatTaskTest {
     private ResolverConfiguration mockConfiguration;
 
     @Mock
-    private HashMap<String, Threat> mockThreats;
+    private HashMap<BigInteger, Threat> mockThreats;
 
     @Before
     public void setUp() throws IOException, ClassNotFoundException {
@@ -71,7 +73,7 @@ public class ResolverThreatTaskTest {
     @Test
     public void testIsThreatInAccuraccyRange() {
         // global preparation
-        final Threat threat = new Threat("test.org");
+        final Threat threat = new Threat(new BigInteger("666"));
         final Policy policy = new Policy();
         final Strategy strategy = new Strategy();
         final StrategyParams params = new StrategyParams();
@@ -120,7 +122,7 @@ public class ResolverThreatTaskTest {
     @Test
     public void testMatchBlacklistedRecordByTypeAndAccuracyFeed() {
         // global preparation
-        final BlacklistedRecord record = new BlacklistedRecord("domain", "domaincrc64", Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
+        final BlacklistedRecord record = new BlacklistedRecord("domain", new BigInteger("666"), Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
         record.getSources().put("phishtank", new ImmutablePair<>("phishing", "abc123"));
         record.getSources().put("mfsk", new ImmutablePair<>("content", "bcd234"));
 
@@ -198,7 +200,7 @@ public class ResolverThreatTaskTest {
     @Test
     public void testmatchBlacklistedRecordByBlacklistFeed() {
         // global preparation
-        final BlacklistedRecord record = new BlacklistedRecord("domain", "domaincrc64", Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
+        final BlacklistedRecord record = new BlacklistedRecord("domain", new BigInteger("666"), Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
         record.getSources().put("phishtank", new ImmutablePair<>("phishing", "abc123"));
         record.getSources().put("mfsk", new ImmutablePair<>("content", "bcd234"));
 
@@ -239,7 +241,7 @@ public class ResolverThreatTaskTest {
 
     @Test
     public void testComputeMaxAccuracy() {
-        final BlacklistedRecord record = new BlacklistedRecord("domain", "domaincrc64", Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
+        final BlacklistedRecord record = new BlacklistedRecord("domain", new BigInteger("666"), Calendar.getInstance(), new HashMap<>(), new HashMap<>(), false);
         final HashMap<String, Integer> map1 = new HashMap<>();
         map1.put("a", 13);
         map1.put("b", -5);
@@ -393,17 +395,17 @@ public class ResolverThreatTaskTest {
         //preparation
         this.context.setBlacklistedRecords(Collections.singleton(mockRecord));
         final int accuracyValue = 123;
-        final String domain = "whalebone.com";
+        final BigInteger domainCrc64 = CRC64.getInstance().crc64BigInteger("whalebone.com".getBytes());
         doReturn(accuracyValue).when(this.resolverThreatTask).computeMaxAccuracy(mockRecord);
 
         final Policy policy = Mockito.mock(Policy.class, Mockito.RETURNS_DEEP_STUBS);
         doReturn(Collections.singletonList(policy)).when(mockConfiguration).getPolicies();
-        doReturn(domain).when(mockRecord).getCrc64Hash();
+        doReturn(domainCrc64).when(mockRecord).getCrc64Hash();
         when(policy.getStrategy().getStrategyType()).thenReturn(StrategyType.blacklist);
 
 
         // calling tested method
-        final Map<String, Threat> threats = this.resolverThreatTask.processData();
+        final Map<BigInteger, Threat> threats = this.resolverThreatTask.processData();
 
         ArgumentCaptor<Threat> threatCaptor = ArgumentCaptor.forClass(Threat.class);
 
@@ -412,7 +414,7 @@ public class ResolverThreatTaskTest {
         final Threat threat = threatCaptor.getValue();
         assertThat(threat, notNullValue());
         assertThat(threat.getAccuracy(), is(accuracyValue));
-        assertThat(threat.getCrc64(), is(domain));
+        assertThat(threat.getCrc64(), is(domainCrc64));
         assertThat(threat.isSet(), is(true));
 
         assertThat(threats, notNullValue());
@@ -427,15 +429,16 @@ public class ResolverThreatTaskTest {
 
         final int accuracyValue = 234;
         final String domain = "whalebone.com";
+        final BigInteger crc64Domain = CRC64.getInstance().crc64BigInteger(domain.getBytes());
         doReturn(accuracyValue).when(this.resolverThreatTask).computeMaxAccuracy(mockRecord);
 
         final Policy policy = Mockito.mock(Policy.class, Mockito.RETURNS_DEEP_STUBS);
         doReturn(Collections.singletonList(policy)).when(mockConfiguration).getPolicies();
-        doReturn(domain).when(mockRecord).getCrc64Hash();
+        doReturn(crc64Domain).when(mockRecord).getCrc64Hash();
         when(policy.getStrategy().getStrategyType()).thenReturn(StrategyType.accuracy);
 
         // calling tested method
-        final Map<String, Threat> threats = this.resolverThreatTask.processData();
+        final Map<BigInteger, Threat> threats = this.resolverThreatTask.processData();
 
         final ArgumentCaptor<Threat> threatCaptor = ArgumentCaptor.forClass(Threat.class);
 
@@ -444,7 +447,7 @@ public class ResolverThreatTaskTest {
         final Threat threat = threatCaptor.getValue();
         assertThat(threat, notNullValue());
         assertThat(threat.getAccuracy(), is(accuracyValue));
-        assertThat(threat.getCrc64(), is(domain));
+        assertThat(threat.getCrc64(), is(crc64Domain));
         assertThat(threat.isSet(), is(false));
 
         assertThat(threats, aMapWithSize(0));
@@ -455,23 +458,23 @@ public class ResolverThreatTaskTest {
 
         // preparing
         final String domain = "whalebone.org";
-        final String md5Hex = DigestUtils.md5Hex(domain);
-        doReturn(md5Hex).when(this.resolverThreatTask).getCrc64(domain);
+        final BigInteger crc64 = CRC64.getInstance().crc64BigInteger(domain.getBytes());
+        doReturn(crc64).when(this.resolverThreatTask).getCrc64(domain);
         final Set<String> domains = Collections.singleton(domain);
         final int idx = 0;
         final Flag flag = Flag.whitelist;
 
-        final Map<String, Threat> threatMap = new HashMap<>();
-        final Threat existingThreat = new Threat(md5Hex);
+        final Map<BigInteger, Threat> threatMap = new HashMap<>();
+        final Threat existingThreat = new Threat(crc64);
         existingThreat.setSlot0(Flag.blacklist);
-        threatMap.put(md5Hex, existingThreat);
+        threatMap.put(crc64, existingThreat);
 
         // calling tested method
         this.resolverThreatTask.handleCustomLists(domains, flag, idx, () -> threatMap);
 
         // verification
         assertThat(threatMap, aMapWithSize(1));
-        final Threat updatedThreat = threatMap.get(md5Hex);
+        final Threat updatedThreat = threatMap.get(crc64);
         assertThat(updatedThreat, notNullValue());
         assertThat(updatedThreat.getSlot0(), is(Flag.whitelist));
     }
@@ -479,29 +482,32 @@ public class ResolverThreatTaskTest {
     @Test
     public void testCustomListNotExists() throws Exception {
         // preparing
+        final CRC64 crc64Hasher = CRC64.getInstance();
         final String domain = "whalebone.org";
         final String existingDomain = "existingDomain";
-        final String md5Hex = DigestUtils.md5Hex(domain);
-        doReturn(md5Hex).when(this.resolverThreatTask).getCrc64(domain);
+        final BigInteger crc64 = crc64Hasher.crc64BigInteger(domain.getBytes());
+        final BigInteger crc64ExistingDomain = crc64Hasher.crc64BigInteger(existingDomain.getBytes());
+        doReturn(crc64).when(this.resolverThreatTask).getCrc64(domain);
+        doReturn(crc64ExistingDomain).when(this.resolverThreatTask).getCrc64(existingDomain);
 
         final Set<String> domains = Collections.singleton(domain);
         final int idx = 0;
         final Flag flag = Flag.whitelist;
 
-        final Map<String, Threat> threatMap = new HashMap<>();
-        Threat existingThreat = new Threat(existingDomain);
+        final Map<BigInteger, Threat> threatMap = new HashMap<>();
+        Threat existingThreat = new Threat(crc64ExistingDomain);
         existingThreat.setSlot0(Flag.blacklist);
-        threatMap.put(existingDomain, existingThreat);
+        threatMap.put(crc64ExistingDomain, existingThreat);
 
         // calling tested method
         this.resolverThreatTask.handleCustomLists(domains, flag, idx, () -> threatMap);
 
         // verification
         assertThat(threatMap, aMapWithSize(2));
-        existingThreat = threatMap.get(existingDomain);
+        existingThreat = threatMap.get(crc64ExistingDomain);
         assertThat(existingThreat, notNullValue());
         assertThat(existingThreat.getSlot0(), is(Flag.blacklist));
-        final Threat newThreat = threatMap.get(md5Hex);
+        final Threat newThreat = threatMap.get(crc64);
         assertThat(newThreat, notNullValue());
         assertThat(newThreat.getSlot0(), is(Flag.whitelist));
     }
@@ -517,10 +523,10 @@ public class ResolverThreatTaskTest {
         final Set<String> blackList = Collections.singleton("black");
         final Set<String> dropList = Collections.singleton("drop");
         final Set<String> whiteList = Collections.singleton("white");
-        doReturn("auditCrc64").when(this.resolverThreatTask).getCrc64("audit");
-        doReturn("blackCrc64").when(this.resolverThreatTask).getCrc64("black");
-        doReturn("dropCrc64").when(this.resolverThreatTask).getCrc64("drop");
-        doReturn("whiteCrc64").when(this.resolverThreatTask).getCrc64("white");
+        doReturn(new BigInteger("1073251900497484785")).when(this.resolverThreatTask).getCrc64("audit");
+        doReturn(new BigInteger("12863298021156289100")).when(this.resolverThreatTask).getCrc64("black");
+        doReturn(new BigInteger("16292570364802992800")).when(this.resolverThreatTask).getCrc64("drop");
+        doReturn(new BigInteger("15764284370007174481")).when(this.resolverThreatTask).getCrc64("white");
 
         final int idx = 0;
 
@@ -570,10 +576,10 @@ public class ResolverThreatTaskTest {
         final Policy policy = new Policy();
         final PolicyCustomList customLists = new PolicyCustomList();
         final Set<String> audits = Collections.singleton("audit");
-        doReturn("auditCrc64").when(this.resolverThreatTask).getCrc64("audit");
+        doReturn(new BigInteger("1073251900497484785")).when(this.resolverThreatTask).getCrc64("audit");
 
         final Set<String> whiteList = Collections.singleton("white");
-        doReturn("whiteCrc64").when(this.resolverThreatTask).getCrc64("white");
+        doReturn(new BigInteger("15764284370007174481")).when(this.resolverThreatTask).getCrc64("white");
         final Threat threat = Mockito.mock(Threat.class);
         final int idx = 0;
 

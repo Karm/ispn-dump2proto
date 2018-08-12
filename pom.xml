@@ -4,7 +4,7 @@
 
     <groupId>biz.karms</groupId>
     <artifactId>ispn-dump2proto</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1</version>
     <packaging>jar</packaging>
 
     <name>ispn-dump2proto</name>
@@ -115,7 +115,7 @@
         <dependency>
             <groupId>biz.karms.sinkit</groupId>
             <artifactId>sinkit-ejb</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.1.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>

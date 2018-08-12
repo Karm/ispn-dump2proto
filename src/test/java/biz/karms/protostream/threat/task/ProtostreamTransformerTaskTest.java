@@ -8,6 +8,8 @@ import biz.karms.protostream.threat.domain.ResolverRecord;
 import biz.karms.protostream.threat.domain.Threat;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.StrategyType;
+
+import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -30,7 +32,7 @@ public class ProtostreamTransformerTaskTest {
     public void setUp() throws UnknownHostException {
         transformerTask = new ProtostreamTransformerTask(Mockito.mock(ResolverConfiguration.class));
 
-        final Threat threat = new Threat( "2315137971279604471");
+        final Threat threat = new Threat( new BigInteger("2315137971279604471"));
         threat.setSlot0(Flag.blacklist);
         threat.setSlot2(Flag.whitelist);
         final List<Threat> threats = Arrays.asList(threat);

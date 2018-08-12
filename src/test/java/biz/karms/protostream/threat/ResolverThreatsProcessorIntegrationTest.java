@@ -13,6 +13,7 @@ import com.google.gson.JsonElement;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -116,7 +117,7 @@ public class ResolverThreatsProcessorIntegrationTest {
 
 
         final List<BlacklistedRecord> blacklistedRecords = Arrays.asList(record, record2, record3);
-        final Set<String> blacklistedRecordsKeySet = blacklistedRecords.stream().map(BlacklistedRecord::getCrc64Hash).collect(Collectors.toSet());
+        final Set<BigInteger> blacklistedRecordsKeySet = blacklistedRecords.stream().map(BlacklistedRecord::getCrc64Hash).collect(Collectors.toSet());
 
         final List<EndUserConfiguration> endUserConfigurations = Arrays.asList(endUserConfiguration1, endUserConfiguration2, endUserConfiguration3);
         final Set<String> endUserConfigurationsKeySet = endUserConfigurations.stream().map(EndUserConfiguration::getId).collect(Collectors.toSet());

@@ -25,7 +25,7 @@ message BlacklistedRecordList {
         }
 
         optional string blackListedDomainOrIP = 1;
-        optional string crc64Hash = 2;
+        optional bytes crc64Hash = 2;
         optional int64 listed = 3;
         optional bool presentOnWhiteList = 4;
         repeated Source sources = 5;

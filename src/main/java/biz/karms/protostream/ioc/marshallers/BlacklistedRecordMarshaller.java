@@ -9,6 +9,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.protostream.MessageMarshaller;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class BlacklistedRecordMarshaller implements MessageMarshaller<Blackliste
 
         return new BlacklistedRecord(
                 reader.readString("blackListedDomainOrIP"),
-                reader.readString("crc64Hash"),
+                new BigInteger(reader.readBytes("crc64Hash")),
                 listed,
                 new HashMap<String, ImmutablePair<String, String>>(sources),
                 new HashMap<String, HashMap<String, Integer>>(accuracy),
@@ -56,7 +57,7 @@ public class BlacklistedRecordMarshaller implements MessageMarshaller<Blackliste
     @Override
     public void writeTo(ProtoStreamWriter writer, BlacklistedRecord record) throws IOException {
         writer.writeString("blackListedDomainOrIP", record.getBlackListedDomainOrIP());
-        writer.writeString("crc64Hash", record.getCrc64Hash());
+        writer.writeBytes("crc64Hash", record.getCrc64Hash().toByteArray());
         writer.writeLong("listed", record.getListed().getTimeInMillis());
         writer.writeBoolean("presentOnWhiteList", record.getPresentOnWhiteList());
         writer.writeCollection("sources",
