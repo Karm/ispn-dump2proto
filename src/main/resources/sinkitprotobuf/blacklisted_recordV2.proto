@@ -1,0 +1,36 @@
+/* author Michal Karm Babacek */
+package sinkitprotobuf;
+
+message BlacklistedRecordV2List {
+    message BlacklistedRecordV2 {
+
+        message TypeIocID {
+            optional string type = 1;
+            optional string iocID = 2;
+        }
+
+        message Source {
+            optional string feed = 1;
+            optional TypeIocID typeIocID = 2;
+        }
+
+        message NameNumber {
+            optional string name = 1;
+            optional int32 number = 2;
+        }
+
+        message Accuracy {
+            optional string feed = 1;
+            repeated NameNumber nameNumbers = 2;
+        }
+
+        optional string blackListedDomainOrIP = 1;
+        optional bytes crc64Hash = 2;
+        optional int64 listed = 3;
+        optional bool presentOnWhiteList = 4;
+        repeated Source sources = 5;
+        repeated Accuracy accuracies = 6;
+    }
+
+    repeated BlacklistedRecordV2 blacklistedRecords = 1;
+}

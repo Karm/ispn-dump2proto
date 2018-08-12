@@ -51,6 +51,7 @@ public class IoCDumper implements Runnable {
     private static final String iocDumpFileMd5 = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5";
     private static final String iocDumpFileMd5Tmp = GENERATED_PROTOFILES_DIRECTORY + "/iocdump.bin.md5.tmp";
     public static final String BLACKLISTED_RECORD_PROTOBUF = "/sinkitprotobuf/blacklisted_record.proto";
+    public static final String BLACKLISTEDV2_RECORD_PROTOBUF = "/sinkitprotobuf/blacklisted_recordV2.proto";
 
     public IoCDumper(final RemoteCache<String, BlacklistedRecord> blacklistCache) {
         this.blacklistCache = blacklistCache;

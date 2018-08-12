@@ -8,8 +8,7 @@ import java.io.IOException;
 /**
  * @author Michal Karm Babacek
  */
-public class TypeIocIDMarshaller
-        implements MessageMarshaller<TypeIocID> {
+public class TypeIocIDMarshaller implements MessageMarshaller<TypeIocID> {
     @Override
     public Class<? extends TypeIocID> getJavaClass() {
         return TypeIocID.class;
