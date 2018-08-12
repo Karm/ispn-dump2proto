@@ -147,7 +147,7 @@ log.log(Level.INFO,"MOST BITS NEEDED: "+most+", crc64:"+crc64);
             System.out.flush();
             BlacklistedRecord br = records.get(i);
 
-            log.log(Level.INFO, br.toString());
+            //log.log(Level.INFO, br.toString());
 
             BlacklistedRecordV2 brv2 = new BlacklistedRecordV2(
                     br.getBlackListedDomainOrIP(),
