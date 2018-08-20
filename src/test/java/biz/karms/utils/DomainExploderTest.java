@@ -1,5 +1,6 @@
 package biz.karms.utils;
 
+import org.junit.Ignore;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -52,6 +53,7 @@ public class DomainExploderTest {
         return Collections.singletonList(fqdn);
     }
 
+    @Ignore
     @Test(dataProvider = "domainFilesProvider")
     void explodeTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);

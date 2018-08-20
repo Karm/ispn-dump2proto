@@ -26,12 +26,15 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -190,8 +193,9 @@ public class ResolverThreatsProcessor {
      */
     int processResolversBatch(final List<ResolverConfiguration> resolverConfigurations, final ProcessingContext context) {
 
-        // use parallel stream - more threads handle the processing
-        return resolverConfigurations.parallelStream().map(resolverConfiguration -> {
+        // use parallel stream - more threads handle the processing - bigger memory footprint
+        // single stream is slower, lower memory footprint
+        return resolverConfigurations.stream().map(resolverConfiguration -> {
             // users custom list task
             final UserCustomListTask userCustomListTask = new UserCustomListTask(resolverConfiguration, context);
             final CompletableFuture<List<CustomListRecord>> userCustomListRecordsFuture = CompletableFuture.supplyAsync(userCustomListTask::processData);

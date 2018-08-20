@@ -2,6 +2,7 @@ package biz.karms.protostream.threat.domain;
 
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +16,7 @@ import lombok.ToString;
 @ToString
 public class Threat implements Serializable {
     @Setter(AccessLevel.NONE)
-    private String crc64;
+    private BigInteger crc64;
 
     private String tmpDomain;
 
@@ -33,7 +34,7 @@ public class Threat implements Serializable {
     private Flag slot10;
     private Flag slot11;
 
-    public Threat(String crc64) {
+    public Threat(BigInteger crc64) {
         this.crc64 = crc64;
     }
 

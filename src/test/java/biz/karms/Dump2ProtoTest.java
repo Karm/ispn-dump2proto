@@ -4,7 +4,6 @@ import biz.karms.crc64java.CRC64;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
-import java.math.BigInteger;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -12,10 +11,12 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.Search;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
+import org.junit.Ignore;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,7 +46,8 @@ public class Dump2ProtoTest {
         };
     }
 
-    @Test(dataProvider = "domainFilesProvider")
+    @Ignore
+    @Test(dataProvider = "domainFilesProvider", enabled = false)
     void iocGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
         log.info("domainsFile: " + domainsFile);
 
@@ -117,7 +119,7 @@ public class Dump2ProtoTest {
             stream.forEach(fqdn -> {
                 fqdns.add(fqdn);
                 final String fqdnHashed = DigestUtils.md5Hex(fqdn);
-                final String crc64 = CRC64.getInstance().crc64String(fqdn.getBytes());
+                final BigInteger crc64 = CRC64.getInstance().crc64BigInteger(fqdn.getBytes());
 
                 final HashMap<String, ImmutablePair<String, String>> feedToType = new HashMap<>();
                 feedToType.put("2-some-feed-to-sink", new ImmutablePair<>("fqdn", "bla bla"));

@@ -12,8 +12,10 @@ import biz.karms.sinkit.resolver.PolicyCustomList;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.StrategyType;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,10 +52,11 @@ public class ResolverThreatTask {
      *
      * @return map keeps threats entities (entry = key is BlacklistedRecord.blackListedDomainOrIP, value is Threat)
      */
-    public Map<String, Threat> processData() {
+    public Map<BigInteger, Threat> processData() {
         logger.log(Level.INFO, "Entering processData...");
         final long start = System.currentTimeMillis();
-        final Callable<Map<String, Threat>> processing = () -> context.getBlacklistedRecords().parallelStream()
+        // Given the millions of records, parallelStream is faster, but it has higher memory footprint. .stream() is used intentionally.
+        final Callable<Map<BigInteger, Threat>> processing = () -> context.getBlacklistedRecords().stream()
                 .map(record -> {
                     logger.log(Level.FINEST, "Starting processing of blacklisted record '{}' for resolver '#{}'",
                             new Object[]{record, this.resolverConfiguration.getResolverId()});
@@ -93,7 +96,7 @@ public class ResolverThreatTask {
      * @param resolverThreatData threats related to resolver which is being processed by this task
      * @return final list of threats
      */
-    public List<Threat> postProcessData(Map<String, Threat> resolverThreatData) {
+    public List<Threat> postProcessData(Map<BigInteger, Threat> resolverThreatData) {
         logger.log(Level.INFO, "Entering postProcessData...");
         final long start = System.currentTimeMillis();
         for (int policyIdx = 0; policyIdx < this.resolverConfiguration.getPolicies().size(); policyIdx++) {
@@ -120,8 +123,12 @@ public class ResolverThreatTask {
                     whitelists -> handleCustomLists(whitelists, Flag.whitelist, slotIdx, () -> resolverThreatData)
             );
         }
+
+        // Sort the final output
+        final List<Threat> values = new ArrayList<>(resolverThreatData.values().stream().sorted(Comparator.comparing(Threat::getCrc64)).collect(Collectors.toList()));
+
         logger.log(Level.INFO, "postProcessData finished in " + (System.currentTimeMillis() - start) + " ms.");
-        return new ArrayList<>(resolverThreatData.values());
+        return values;
     }
 
     /**
@@ -223,16 +230,16 @@ public class ResolverThreatTask {
                 .reduce(Math::max).orElse(0);
     }
 
-    void handleCustomLists(final Set<String> customLists, final Flag flag, final int slotIdx, final Supplier<Map<String, Threat>> threatsSupplier) {
+    void handleCustomLists(final Set<String> customLists, final Flag flag, final int slotIdx, final Supplier<Map<BigInteger, Threat>> threatsSupplier) {
         Optional.of(customLists).ifPresent(data -> data.forEach(domain -> {
-            final String crc64 = getCrc64(domain);
+            final BigInteger crc64 = getCrc64(domain);
             final Threat threat = threatsSupplier.get().computeIfAbsent(crc64, Threat::new);
             threat.setTmpDomain(domain);
             threat.setSlot(slotIdx, flag);
         }));
     }
 
-    String getCrc64(String domain) {
-        return CRC64.getInstance().crc64String(domain.getBytes());
+    BigInteger getCrc64(String domain) {
+        return CRC64.getInstance().crc64BigInteger(domain.getBytes());
     }
 }

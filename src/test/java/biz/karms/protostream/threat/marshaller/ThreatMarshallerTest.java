@@ -45,7 +45,7 @@ public class ThreatMarshallerTest {
     public void writeTo() throws Exception {
 
         // preparation
-        final Threat record = new Threat("14378846635097004878");
+        final Threat record = new Threat(new BigInteger("14378846635097004878"));
         record.setAccuracy(50);
         record.setSlot0(Flag.blacklist);
         record.setSlot1(Flag.whitelist);
@@ -66,7 +66,7 @@ public class ThreatMarshallerTest {
         marshaller.writeTo(writer, record);
 
         // verification
-        verify(writer).writeString("crc64", record.getCrc64());
+        verify(writer).writeString("crc64", record.getCrc64().toString());
         verify(writer).writeInt("accuracy", 50);
 
         final ArgumentCaptor<List<Integer>> flagsCaptor = ArgumentCaptor.forClass(List.class);
