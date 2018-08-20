@@ -4,7 +4,7 @@ import biz.karms.MyCacheManagerProvider;
 import biz.karms.crc64java.CRC64;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
-import biz.karms.utils.CIDRUtils;
+import biz.karms.sinkit.ejb.util.CIDRUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.infinispan.client.hotrod.RemoteCache;

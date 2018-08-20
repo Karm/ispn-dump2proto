@@ -1,13 +1,11 @@
 package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.protostream.threat.domain.Threat;
+import org.infinispan.protostream.MessageMarshaller;
+
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.infinispan.protostream.MessageMarshaller;
 
 public class ThreatMarshaller implements MessageMarshaller<Threat> {
     @Override
@@ -27,7 +25,7 @@ public class ThreatMarshaller implements MessageMarshaller<Threat> {
 
     @Override
     public void writeTo(ProtoStreamWriter writer, Threat record) throws IOException {
-        writer.writeString("crc64", record.getCrc64().toString());
+        writer.writeBytes("crc64", record.getCrc64().toByteArray());
         writer.writeInt("accuracy", record.getAccuracy());
 
         final List<Integer> flags = record.getSlots().stream().map(flag -> flag != null ? (int) flag.getByteValue() : 0).collect(Collectors.toList());

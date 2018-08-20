@@ -9,6 +9,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.math.BigInteger;
+
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
@@ -41,16 +43,14 @@ public class IpRangesRecordMarshallerTest {
 
         // preparation
         final IpRangesRecord record = new IpRangesRecord("10.20.30.40/8", 1);
-        final Pair<String, String> tmpRanges = CIDRUtils.getStartEndAddresses("10.20.30.40/8");
+        final Pair<BigInteger, BigInteger> tmpRanges = CIDRUtils.getStartEndAddressesBigInt("10.20.30.40/8");
 
         // calling tested method
         marshaller.writeTo(writer, record);
 
-
-
         // verification
-        verify(writer).writeString("startIpRange", tmpRanges.getLeft());
-        verify(writer).writeString("endIpRange", tmpRanges.getRight());
+        verify(writer).writeBytes("startIpRange", tmpRanges.getLeft().toByteArray());
+        verify(writer).writeBytes("endIpRange", tmpRanges.getRight().toByteArray());
         verify(writer).writeString("identity", null);
         verify(writer).writeInt("policyId", 1);
     }

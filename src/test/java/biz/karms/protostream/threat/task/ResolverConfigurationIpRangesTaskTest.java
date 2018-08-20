@@ -2,9 +2,10 @@ package biz.karms.protostream.threat.task;
 
 import biz.karms.protostream.threat.domain.IpRangesRecord;
 import biz.karms.protostream.threat.processing.ProcessingContext;
+import biz.karms.sinkit.ejb.util.CIDRUtils;
 import biz.karms.sinkit.resolver.Policy;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
-import biz.karms.utils.CIDRUtils;
+import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -55,7 +56,7 @@ public class ResolverConfigurationIpRangesTaskTest {
         assertThat(ipRangesRecords, hasSize(5));
         assertThat(ipRangesRecords.get(0).getCidrAddress(), is("10.30.30.30/32"));
         assertThat(ipRangesRecords.get(0).getPolicyId(), is(2));
-        Pair<String, String> ranges = CIDRUtils.getStartEndAddresses("10.30.30.30/32");
+        Pair<BigInteger, BigInteger> ranges = CIDRUtils.getStartEndAddressesBigInt("10.30.30.30/32");
 
         assertThat(ipRangesRecords.get(0).getStartIpRange(), is(ranges.getLeft()));
         assertThat(ipRangesRecords.get(0).getEndIpRange(), is(ranges.getRight()));

@@ -2,15 +2,16 @@ package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.protostream.threat.domain.Flag;
 import biz.karms.protostream.threat.domain.Threat;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
 import org.infinispan.protostream.MessageMarshaller;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -66,7 +67,7 @@ public class ThreatMarshallerTest {
         marshaller.writeTo(writer, record);
 
         // verification
-        verify(writer).writeString("crc64", record.getCrc64().toString());
+        verify(writer).writeBytes("crc64", record.getCrc64().toByteArray());
         verify(writer).writeInt("accuracy", 50);
 
         final ArgumentCaptor<List<Integer>> flagsCaptor = ArgumentCaptor.forClass(List.class);

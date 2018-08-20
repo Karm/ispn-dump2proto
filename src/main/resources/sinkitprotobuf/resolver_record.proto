@@ -8,14 +8,14 @@ message ResolverRecord {
 }
 
 message Threat {
-    required string crc64 = 1;
+    required bytes crc64 = 1;
     required int32 accuracy = 2;
     repeated int32 flags = 3;
 }
 
 message IpRangesRecord {
-    required string startIpRange = 1;
-    required string endIpRange = 2;
+    required bytes startIpRange = 1;
+    required bytes endIpRange = 2;
     optional string identity = 3;
     required int32 policyId = 4;
 }

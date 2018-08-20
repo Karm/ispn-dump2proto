@@ -6,6 +6,7 @@ message ResolverConfiguration {
     required int32 clientId = 2;
     repeated Policy policies = 3;
 }
+
 message Policy {
     required int32 id = 1;
     repeated string ipRanges = 2;
