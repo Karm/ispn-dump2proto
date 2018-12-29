@@ -12,6 +12,7 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.commons.util.CloseableIterator;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -175,6 +176,7 @@ public class ResolverThreatsProcessorTest {
     }
 
     @Test
+    @Ignore("Not implemented")
     public void testFetchBlacklistedRecord() {
         //TODO FIX        // preparation
        /* final RemoteCache<String, BlacklistedRecord> remoteCache = mock(RemoteCache.class, Answers.RETURNS_DEEP_STUBS);
