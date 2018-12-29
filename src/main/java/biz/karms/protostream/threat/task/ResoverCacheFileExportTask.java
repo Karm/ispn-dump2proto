@@ -49,6 +49,8 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
             } catch (InvalidEndpointException | InvalidPortException e) {
                 logger.log(Level.SEVERE, "MinioClient initialization failed. S3 cannot be used.", e);
             }
+        } else {
+            logger.log(Level.INFO, "S3 Won't be used.");
         }
         this.minioClient = minioClientTmp;
     }
