@@ -24,8 +24,10 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
     fi; \
     echo 'handlers = java.util.logging.ConsoleHandler' > /opt/dump2proto/logging.properties && \
     echo "${D2P_LOGGING:-.level=ALL}" >> /opt/dump2proto/logging.properties && \
-    echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
-    echo 'start' >> /opt/dump2proto/start.sh && \
+    if [[ ${RUN_NFS:-True} == "True" ]]; then \
+        echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
+        echo 'start' >> /opt/dump2proto/start.sh; \
+    fi; \
     echo 'export JAVA_OPTS="\
  -server \
  -Xms${D2P_MS_RAM:-1g} \
