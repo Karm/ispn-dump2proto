@@ -138,6 +138,16 @@ public class Dump2Proto {
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
+        if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
+            //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
+            this.resolverCacheGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
+                    .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
+                            (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
+                            D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
+        } else {
+            this.resolverCacheGeneratorHandle = null;
+        }
+        
         if (D2P_IOC_DUMPER_INTERVAL_S > 0) {
             this.iocDumperHandle = scheduler // shared scheduler with IocProtostreamGenerator
                     .scheduleAtFixedRate(new IoCDumper(myCacheManagerProvider.getBlacklistCache()),
@@ -178,16 +188,6 @@ public class Dump2Proto {
                             D2P_IOC_GENERATOR_INTERVAL_S, SECONDS);
         } else {
             this.iocGeneratorHandle = null;
-        }
-
-        if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
-            //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
-            this.resolverCacheGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
-                    .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
-                            (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
-                            D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
-        } else {
-            this.resolverCacheGeneratorHandle = null;
         }
 
         if (D2P_WHITELIST_GENERATOR_INTERVAL_S > 0) {
