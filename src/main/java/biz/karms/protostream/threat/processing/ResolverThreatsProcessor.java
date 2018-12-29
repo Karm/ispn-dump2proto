@@ -1,19 +1,8 @@
 package biz.karms.protostream.threat.processing;
 
-import biz.karms.protostream.threat.domain.CustomListRecord;
-import biz.karms.protostream.threat.domain.IpRangesRecord;
-import biz.karms.protostream.threat.domain.PolicyRecord;
-import biz.karms.protostream.threat.domain.ResolverRecord;
-import biz.karms.protostream.threat.domain.Threat;
+import biz.karms.protostream.threat.domain.*;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
-import biz.karms.protostream.threat.task.ProtostreamTransformerTask;
-import biz.karms.protostream.threat.task.ResolverCacheExportTask;
-import biz.karms.protostream.threat.task.ResolverConfigurationIpRangesTask;
-import biz.karms.protostream.threat.task.ResolverConfigurationPolicyTask;
-import biz.karms.protostream.threat.task.ResolverProcessingTask;
-import biz.karms.protostream.threat.task.ResolverThreatTask;
-import biz.karms.protostream.threat.task.ResoverCacheFileExportTask;
-import biz.karms.protostream.threat.task.UserCustomListTask;
+import biz.karms.protostream.threat.task.*;
 import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
@@ -24,17 +13,9 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -104,7 +85,8 @@ public class ResolverThreatsProcessor {
         final long start = System.currentTimeMillis();
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.resolver_configuration.name());
-
+        //TODO: Do even/odd for resolver keys
+        //TODO: Order by change
         final Set<Integer> keys = resolverConfigurationCache.keySet();
         final Collection<ResolverConfiguration> configurations = resolverConfigurationCache.getAll(keys).values();
         context.setResolverConfigurations(configurations);

@@ -1,11 +1,6 @@
 package biz.karms;
 
-import biz.karms.protostream.CustomlistProtostreamGenerator;
-import biz.karms.protostream.IoCDumper;
-import biz.karms.protostream.IoCWithCustomProtostreamGenerator;
-import biz.karms.protostream.IocProtostreamGenerator;
-import biz.karms.protostream.ResolverThreatsGenerator;
-import biz.karms.protostream.WhitelistProtostreamGenerator;
+import biz.karms.protostream.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -33,11 +28,6 @@ public class Dump2Proto {
 
     protected static final Logger log = Logger.getLogger(Dump2Proto.class.getName());
 
-    public static final String GENERATED_PROTOFILES_DIRECTORY =
-            (System.getProperties().containsKey("D2P_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY")))
-                    ? System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
-    public static final Set<OpenOption> options = Stream.of(APPEND, CREATE).collect(Collectors.toSet());
-    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-rw-rw-"));
     public static final String D2P_CACHE_PROTOBUF = "/sinkitprotobuf/sinkit-cache.proto";
 
     // If host or port are nto set, the app fails to start.
@@ -90,6 +80,20 @@ public class Dump2Proto {
      */
     private static final long D2P_IOC_DUMPER_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_IOC_DUMPER_INTERVAL_S", "0"));
 
+    /**
+     * S3 and disk storage
+     */
+    public static final String GENERATED_PROTOFILES_DIRECTORY =
+            (System.getProperties().containsKey("D2P_GENERATED_PROTOFILES_DIRECTORY") && StringUtils.isNotEmpty(System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY")))
+                    ? System.getProperty("D2P_GENERATED_PROTOFILES_DIRECTORY") : System.getProperty("java.io.tmpdir");
+    public static final Set<OpenOption> options = Stream.of(APPEND, CREATE).collect(Collectors.toSet());
+    public static final FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-rw-rw-"));
+    public static final Boolean USE_S3_ONLY = Boolean.parseBoolean(System.getProperty("D2P_USE_S3_ONLY"));
+    public static final String S3_ENDPOINT = System.getProperty("D2P_S3_ENDPOINT");
+    public static final String S3_ACCESS_KEY = System.getProperty("D2P_S3_ACCESS_KEY");
+    public static final String S3_SECRET_KEY = System.getProperty("D2P_S3_SECRET_KEY");
+    public static final String S3_BUCKET_NAME = System.getProperty("D2P_S3_BUCKET_NAME");
+    public static final String S3_REGION = System.getProperty("D2P_S3_REGION");
 
     /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
