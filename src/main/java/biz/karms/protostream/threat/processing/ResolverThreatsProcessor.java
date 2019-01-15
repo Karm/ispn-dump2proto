@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat.processing;
 
+import biz.karms.Dump2Proto;
 import biz.karms.protostream.threat.domain.*;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
 import biz.karms.protostream.threat.task.*;
@@ -52,7 +53,7 @@ public class ResolverThreatsProcessor {
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
-    public ResolverThreatsProcessor(RemoteCacheManager remoteCacheManager, RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
+    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
@@ -88,7 +89,14 @@ public class ResolverThreatsProcessor {
         //TODO: Do even/odd for resolver keys
         //TODO: Order by change
         final Set<Integer> keys = resolverConfigurationCache.keySet();
-        final Collection<ResolverConfiguration> configurations = resolverConfigurationCache.getAll(keys).values();
+        final List<ResolverConfiguration> configurations;
+        if (Dump2Proto.REVERSE_RESOLVERS_ORDER) {
+            configurations = resolverConfigurationCache.getAll(keys).values().stream()
+                    .sorted(Comparator.comparing(ResolverConfiguration::getResolverId).reversed()).collect(Collectors.toList());
+        } else {
+            configurations = resolverConfigurationCache.getAll(keys).values().stream()
+                    .sorted(Comparator.comparing(ResolverConfiguration::getResolverId)).collect(Collectors.toList());
+        }
         context.setResolverConfigurations(configurations);
         logger.log(Level.INFO, "fetchResolverConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
@@ -105,7 +113,6 @@ public class ResolverThreatsProcessor {
         final long start = System.currentTimeMillis();
         final RemoteCache<String, EndUserConfiguration> endUserConfigurationRemoteCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.end_user_configuration.name());
-
         final Set<String> keys = endUserConfigurationRemoteCache.keySet();
         final Collection<EndUserConfiguration> endUserRecords = endUserConfigurationRemoteCache.getAll(keys).values();
         context.setEndUserRecords(endUserRecords);

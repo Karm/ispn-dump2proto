@@ -90,6 +90,9 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
         }
 
         if (!Dump2Proto.USE_S3_ONLY) {
+
+            data.rewind();
+
             final String path = format(pathTemplate, resolverId);
             final String md5Path = path + ".md5";
             final String tmpPath = path + ".tmp";

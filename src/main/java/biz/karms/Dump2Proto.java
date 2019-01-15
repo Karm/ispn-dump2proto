@@ -1,6 +1,7 @@
 package biz.karms;
 
 import biz.karms.protostream.*;
+import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -96,9 +97,15 @@ public class Dump2Proto {
     public static final String S3_REGION = System.getProperty("D2P_S3_REGION");
 
     /**
+     * Resolver listeners and work partitioning
+     */
+    public static final Boolean ENABLE_CACHE_LISTENERS = Boolean.parseBoolean(System.getProperty("D2P_ENABLE_CACHE_LISTENERS"));
+    public static final Boolean REVERSE_RESOLVERS_ORDER = Boolean.parseBoolean(System.getProperty("D2P_REVERSE_RESOLVERS_ORDER"));
+
+    /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
      */
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private final ScheduledExecutorService customListGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
@@ -138,6 +145,13 @@ public class Dump2Proto {
         this.jvmShutdownHook = new ShutdownHook(myCacheManagerProvider);
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
+        if (ENABLE_CACHE_LISTENERS) {
+            myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.resolver_configuration.name())
+                    .addClientListener(new ResolverCacheUpdateListener());
+            myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.end_user_configuration.name())
+                    .addClientListener(new EndUserCacheUpdateListener());
+        }
+
         if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
             //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
             this.resolverCacheGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
@@ -147,7 +161,7 @@ public class Dump2Proto {
         } else {
             this.resolverCacheGeneratorHandle = null;
         }
-        
+
         if (D2P_IOC_DUMPER_INTERVAL_S > 0) {
             this.iocDumperHandle = scheduler // shared scheduler with IocProtostreamGenerator
                     .scheduleAtFixedRate(new IoCDumper(myCacheManagerProvider.getBlacklistCache()),
@@ -170,8 +184,8 @@ public class Dump2Proto {
         }
 
         if (D2P_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
-            this.customListGeneratorHandle = customListGeneratorScheduler
-                    //this.customListGeneratorHandle = scheduler
+            //this.customListGeneratorHandle = customListGeneratorScheduler
+            this.customListGeneratorHandle = scheduler
                     .scheduleAtFixedRate(new CustomlistProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches()),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_CUSTOMLIST_GENERATOR_INTERVAL_S, SECONDS);
@@ -201,7 +215,8 @@ public class Dump2Proto {
         }
 
         if (D2P_ALL_CUSTOMLIST_GENERATOR_INTERVAL_S > 0) {
-            this.allCustomlistGeneratorHandle = customListGeneratorScheduler
+            this.allCustomlistGeneratorHandle = scheduler
+                    //this.allCustomlistGeneratorHandle = customListGeneratorScheduler
                     .scheduleAtFixedRate(new IoCWithCustomProtostreamGenerator(myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     myCacheManagerProvider.getBlacklistCache(), IoCWithCustomProtostreamGenerator.SCOPE.CUSTOM_LISTS_ONLY),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,

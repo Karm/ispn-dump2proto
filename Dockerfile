@@ -63,6 +63,8 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
  -DD2P_S3_SECRET_KEY=${D2P_S3_SECRET_KEY:-8chars} \
  -DD2P_S3_BUCKET_NAME=${D2P_S3_BUCKET_NAME:-serve-file} \
  -DD2P_S3_REGION=${D2P_S3_REGION:-eu-west-1} \
+ -DD2P_ENABLE_CACHE_LISTENERS=${D2P_ENABLE_CACHE_LISTENERS:-False} \
+ -DD2P_REVERSE_RESOLVERS_ORDER=${D2P_REVERSE_RESOLVERS_ORDER:-False} \
  ${DBG_OPTS} \
  -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}.jar \
  ' >> /opt/dump2proto/start.sh
