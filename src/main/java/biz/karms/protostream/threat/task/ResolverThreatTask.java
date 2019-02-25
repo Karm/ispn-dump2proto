@@ -13,15 +13,7 @@ import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.StrategyType;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
@@ -29,6 +21,7 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -123,6 +116,26 @@ public class ResolverThreatTask {
                     whitelists -> handleCustomLists(whitelists, Flag.whitelist, slotIdx, () -> resolverThreatData)
             );
         }
+
+        // TODO: This is a duplicate work with UserCustomListTask: How do we leverage the work and NOT break parallelism?
+        final Set<String> domainFromCustomLists = new HashSet<>();
+        context.getEndUserRecords().stream()
+                .filter(conf -> this.resolverConfiguration.getClientId().equals(conf.getClientId()))
+                .forEach(c -> {
+                    domainFromCustomLists.addAll(c.getBlacklist());
+                    domainFromCustomLists.addAll(c.getWhitelist());
+                });
+        domainFromCustomLists.forEach(domain -> {
+            final BigInteger crc64 = getCrc64(domain);
+
+            resolverThreatData.computeIfAbsent(crc64, v -> {
+                final Threat threat = new Threat(crc64);
+                threat.setAccuracy(0);
+                threat.setTmpDomain(domain);
+                IntStream.range(0, 12).forEach(i -> threat.setSlot(i, Flag.none));
+                return threat;
+            });
+        });
 
         // Sort the final output
         final List<Threat> values = new ArrayList<>(resolverThreatData.values().stream().sorted(Comparator.comparing(Threat::getCrc64)).collect(Collectors.toList()));

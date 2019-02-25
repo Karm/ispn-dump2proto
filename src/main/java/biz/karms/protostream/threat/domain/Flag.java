@@ -6,6 +6,11 @@ package biz.karms.protostream.threat.domain;
 public enum Flag {
 
     /**
+     * 00000000
+     */
+    none(0),
+
+    /**
      * 00000001
      */
     accuracy(1),
@@ -52,6 +57,8 @@ public enum Flag {
     public static Flag parse(int value) {
         if (accuracy.value == value)
             return accuracy;
+        else if (none.value == value)
+            return none;
         else if (blacklist.value == value)
             return blacklist;
         else if (whitelist.value == value)
