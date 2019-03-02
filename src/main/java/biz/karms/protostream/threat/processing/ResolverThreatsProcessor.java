@@ -1,19 +1,9 @@
 package biz.karms.protostream.threat.processing;
 
-import biz.karms.protostream.threat.domain.CustomListRecord;
-import biz.karms.protostream.threat.domain.IpRangesRecord;
-import biz.karms.protostream.threat.domain.PolicyRecord;
-import biz.karms.protostream.threat.domain.ResolverRecord;
-import biz.karms.protostream.threat.domain.Threat;
+import biz.karms.Dump2Proto;
+import biz.karms.protostream.threat.domain.*;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
-import biz.karms.protostream.threat.task.ProtostreamTransformerTask;
-import biz.karms.protostream.threat.task.ResolverCacheExportTask;
-import biz.karms.protostream.threat.task.ResolverConfigurationIpRangesTask;
-import biz.karms.protostream.threat.task.ResolverConfigurationPolicyTask;
-import biz.karms.protostream.threat.task.ResolverProcessingTask;
-import biz.karms.protostream.threat.task.ResolverThreatTask;
-import biz.karms.protostream.threat.task.ResoverCacheFileExportTask;
-import biz.karms.protostream.threat.task.UserCustomListTask;
+import biz.karms.protostream.threat.task.*;
 import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
@@ -24,17 +14,9 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -71,7 +53,7 @@ public class ResolverThreatsProcessor {
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
-    public ResolverThreatsProcessor(RemoteCacheManager remoteCacheManager, RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
+    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
@@ -104,9 +86,17 @@ public class ResolverThreatsProcessor {
         final long start = System.currentTimeMillis();
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.resolver_configuration.name());
-
+        //TODO: Do even/odd for resolver keys
+        //TODO: Order by change
         final Set<Integer> keys = resolverConfigurationCache.keySet();
-        final Collection<ResolverConfiguration> configurations = resolverConfigurationCache.getAll(keys).values();
+        final List<ResolverConfiguration> configurations;
+        if (Dump2Proto.REVERSE_RESOLVERS_ORDER) {
+            configurations = resolverConfigurationCache.getAll(keys).values().stream()
+                    .sorted(Comparator.comparing(ResolverConfiguration::getResolverId).reversed()).collect(Collectors.toList());
+        } else {
+            configurations = resolverConfigurationCache.getAll(keys).values().stream()
+                    .sorted(Comparator.comparing(ResolverConfiguration::getResolverId)).collect(Collectors.toList());
+        }
         context.setResolverConfigurations(configurations);
         logger.log(Level.INFO, "fetchResolverConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
@@ -123,7 +113,6 @@ public class ResolverThreatsProcessor {
         final long start = System.currentTimeMillis();
         final RemoteCache<String, EndUserConfiguration> endUserConfigurationRemoteCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.end_user_configuration.name());
-
         final Set<String> keys = endUserConfigurationRemoteCache.keySet();
         final Collection<EndUserConfiguration> endUserRecords = endUserConfigurationRemoteCache.getAll(keys).values();
         context.setEndUserRecords(endUserRecords);

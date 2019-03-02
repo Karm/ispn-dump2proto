@@ -4,51 +4,30 @@ import biz.karms.protostream.threat.exception.ResolverProcessingException;
 import biz.karms.protostream.threat.task.ResolverCacheExportTask;
 import biz.karms.protostream.threat.task.ResolverProcessingTask;
 import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
-import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
-import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.commons.util.CloseableIterator;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
-import org.testng.collections.CollectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
-import java.util.AbstractCollection;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 @SuppressWarnings("unchecked")
@@ -175,6 +154,7 @@ public class ResolverThreatsProcessorTest {
     }
 
     @Test
+    @Ignore("Not implemented")
     public void testFetchBlacklistedRecord() {
         //TODO FIX        // preparation
        /* final RemoteCache<String, BlacklistedRecord> remoteCache = mock(RemoteCache.class, Answers.RETURNS_DEEP_STUBS);

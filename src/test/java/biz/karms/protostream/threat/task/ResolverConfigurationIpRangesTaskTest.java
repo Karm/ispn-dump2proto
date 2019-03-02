@@ -5,18 +5,17 @@ import biz.karms.protostream.threat.processing.ProcessingContext;
 import biz.karms.sinkit.resolver.Policy;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.utils.CIDRUtils;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 /**

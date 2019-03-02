@@ -10,21 +10,6 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.Matchers;
@@ -37,18 +22,21 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ResolverThreatsProcessorIntegrationTest {
 
@@ -152,7 +140,7 @@ public class ResolverThreatsProcessorIntegrationTest {
     }
 
     @Test
-    @Ignore("due to crc64")
+    //@Ignore("due to crc64")
     public void testProcess() {
 
         // preparation
@@ -168,7 +156,6 @@ public class ResolverThreatsProcessorIntegrationTest {
 
         ArgumentCaptor<ByteBuffer> content1Captor = ArgumentCaptor.forClass(ByteBuffer.class);
         verify(mockExporter).export(eq(resolverConfiguration), content1Captor.capture());
-
 
         ArgumentCaptor<ByteBuffer> content2Captor = ArgumentCaptor.forClass(ByteBuffer.class);
         verify(mockExporter).export(eq(resolverConfiguration2), content2Captor.capture());

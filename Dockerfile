@@ -16,7 +16,7 @@ VOLUME /exports
 
 EXPOSE 111/udp 2049/tcp
 
-ENV D2P_VERSION 2.1
+ENV D2P_VERSION 2.1.1
 # TODO: So something like su -c 'java ...' -s /bin/bash - dump2proto to drop root for java process...
 ADD start.sh /opt/dump2proto/
 RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
@@ -24,8 +24,10 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
     fi; \
     echo 'handlers = java.util.logging.ConsoleHandler' > /opt/dump2proto/logging.properties && \
     echo "${D2P_LOGGING:-.level=ALL}" >> /opt/dump2proto/logging.properties && \
-    echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
-    echo 'start' >> /opt/dump2proto/start.sh && \
+    if [[ ${RUN_NFS:-True} == "True" ]]; then \
+        echo 'echo "/exports ${D2P_NFS_EXPORT:-*(ro)}" > /etc/exports' >> /opt/dump2proto/start.sh && \
+        echo 'start' >> /opt/dump2proto/start.sh; \
+    fi; \
     echo 'export JAVA_OPTS="\
  -server \
  -Xms${D2P_MS_RAM:-1g} \
@@ -55,6 +57,14 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
  -DD2P_RESOLVER_THREAT_TASK_RECORD_BATCH_SIZE_S=${D2P_RESOLVER_THREAT_TASK_RECORD_BATCH_SIZE_S:-1} \
  -DD2P_WHITELIST_GENERATOR_INTERVAL_S=${D2P_WHITELIST_GENERATOR_INTERVAL_S:-14400} \
  -DD2P_IOC_DUMPER_INTERVAL_S=${D2P_IOC_DUMPER_INTERVAL_S:-86400} \
+ -DD2P_USE_S3_ONLY=${D2P_USE_S3_ONLY:-False} \
+ -DD2P_S3_ENDPOINT=${D2P_S3_ENDPOINT:-https://localhost:9000} \
+ -DD2P_S3_ACCESS_KEY=${D2P_S3_ACCESS_KEY:-3chars} \
+ -DD2P_S3_SECRET_KEY=${D2P_S3_SECRET_KEY:-8chars} \
+ -DD2P_S3_BUCKET_NAME=${D2P_S3_BUCKET_NAME:-serve-file} \
+ -DD2P_S3_REGION=${D2P_S3_REGION:-eu-west-1} \
+ -DD2P_ENABLE_CACHE_LISTENERS=${D2P_ENABLE_CACHE_LISTENERS:-False} \
+ -DD2P_REVERSE_RESOLVERS_ORDER=${D2P_REVERSE_RESOLVERS_ORDER:-False} \
  ${DBG_OPTS} \
  -jar /opt/dump2proto/ispn-dump2proto-${D2P_VERSION}.jar \
  ' >> /opt/dump2proto/start.sh
