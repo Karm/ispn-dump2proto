@@ -2,20 +2,15 @@ package biz.karms.protostream.threat.task;
 
 import biz.karms.protostream.threat.domain.PolicyRecord;
 import biz.karms.protostream.threat.processing.ProcessingContext;
-import biz.karms.sinkit.resolver.Policy;
-import biz.karms.sinkit.resolver.ResolverConfiguration;
-import biz.karms.sinkit.resolver.Strategy;
-import biz.karms.sinkit.resolver.StrategyParams;
-import biz.karms.sinkit.resolver.StrategyType;
-import java.util.Arrays;
-import java.util.List;
+import biz.karms.sinkit.resolver.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.is;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 public class ResolverConfigurationPolicyTaskTest {

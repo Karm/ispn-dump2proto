@@ -140,7 +140,7 @@ public class ResolverThreatsProcessorIntegrationTest {
     }
 
     @Test
-    @Ignore("due to crc64")
+    //@Ignore("due to crc64")
     public void testProcess() {
 
         // preparation
@@ -156,7 +156,6 @@ public class ResolverThreatsProcessorIntegrationTest {
 
         ArgumentCaptor<ByteBuffer> content1Captor = ArgumentCaptor.forClass(ByteBuffer.class);
         verify(mockExporter).export(eq(resolverConfiguration), content1Captor.capture());
-
 
         ArgumentCaptor<ByteBuffer> content2Captor = ArgumentCaptor.forClass(ByteBuffer.class);
         verify(mockExporter).export(eq(resolverConfiguration2), content2Captor.capture());

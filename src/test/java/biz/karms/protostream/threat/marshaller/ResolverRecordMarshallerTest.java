@@ -1,18 +1,15 @@
 package biz.karms.protostream.threat.marshaller;
 
-import biz.karms.protostream.threat.domain.CustomListRecord;
-import biz.karms.protostream.threat.domain.IpRangesRecord;
-import biz.karms.protostream.threat.domain.PolicyRecord;
-import biz.karms.protostream.threat.domain.ResolverRecord;
-import biz.karms.protostream.threat.domain.Threat;
-import java.util.Collections;
-import java.util.List;
+import biz.karms.protostream.threat.domain.*;
 import org.infinispan.protostream.MessageMarshaller;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

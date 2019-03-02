@@ -1,13 +1,12 @@
 package biz.karms.protostream.threat.task;
 
-import biz.karms.protostream.threat.domain.CustomListRecord;
-import biz.karms.protostream.threat.domain.Flag;
-import biz.karms.protostream.threat.domain.IpRangesRecord;
-import biz.karms.protostream.threat.domain.PolicyRecord;
-import biz.karms.protostream.threat.domain.ResolverRecord;
-import biz.karms.protostream.threat.domain.Threat;
+import biz.karms.protostream.threat.domain.*;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import biz.karms.sinkit.resolver.StrategyType;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.math.BigInteger;
 import java.net.UnknownHostException;
@@ -15,10 +14,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertThat;
 
@@ -32,7 +27,7 @@ public class ProtostreamTransformerTaskTest {
     public void setUp() throws UnknownHostException {
         transformerTask = new ProtostreamTransformerTask(Mockito.mock(ResolverConfiguration.class));
 
-        final Threat threat = new Threat( new BigInteger("2315137971279604471"));
+        final Threat threat = new Threat(new BigInteger("2315137971279604471"));
         threat.setSlot0(Flag.blacklist);
         threat.setSlot2(Flag.whitelist);
         final List<Threat> threats = Arrays.asList(threat);

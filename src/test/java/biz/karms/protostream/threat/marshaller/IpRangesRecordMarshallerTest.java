@@ -47,7 +47,6 @@ public class IpRangesRecordMarshallerTest {
         marshaller.writeTo(writer, record);
 
 
-
         // verification
         verify(writer).writeString("startIpRange", tmpRanges.getLeft());
         verify(writer).writeString("endIpRange", tmpRanges.getRight());

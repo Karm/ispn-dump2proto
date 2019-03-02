@@ -6,43 +6,22 @@ import biz.karms.protostream.threat.domain.Threat;
 import biz.karms.protostream.threat.processing.ProcessingContext;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ioc.IoCClassificationType;
-import biz.karms.sinkit.resolver.Policy;
-import biz.karms.sinkit.resolver.PolicyCustomList;
-import biz.karms.sinkit.resolver.ResolverConfiguration;
-import biz.karms.sinkit.resolver.Strategy;
-import biz.karms.sinkit.resolver.StrategyParams;
-import biz.karms.sinkit.resolver.StrategyType;
+import biz.karms.sinkit.resolver.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Test class for {@link ResolverThreatTask}

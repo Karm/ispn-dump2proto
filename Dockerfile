@@ -16,7 +16,7 @@ VOLUME /exports
 
 EXPOSE 111/udp 2049/tcp
 
-ENV D2P_VERSION 2.1
+ENV D2P_VERSION 2.1.1
 # TODO: So something like su -c 'java ...' -s /bin/bash - dump2proto to drop root for java process...
 ADD start.sh /opt/dump2proto/
 RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
