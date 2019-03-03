@@ -53,7 +53,7 @@ public class ResolverThreatsProcessorTest {
     @Before
     public void setUp() throws NoSuchFieldException, IllegalAccessException {
         MockitoAnnotations.initMocks(this);
-        this.processor = spy(new ResolverThreatsProcessor(remoteCacheManager, remoteCacheManagerForIndexedCaches, 20));
+        this.processor = spy(new ResolverThreatsProcessor(remoteCacheManager, remoteCacheManagerForIndexedCaches, 20, null, null));
 
         // replace final logger
         final Field loggerField = ResolverThreatsProcessor.class.getDeclaredField("logger");

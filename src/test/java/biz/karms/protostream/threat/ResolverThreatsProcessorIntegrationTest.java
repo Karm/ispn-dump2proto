@@ -17,7 +17,6 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.commons.util.CloseableIterator;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -118,7 +117,7 @@ public class ResolverThreatsProcessorIntegrationTest {
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationRemoteCache = Mockito.mock(RemoteCache.class, RETURNS_DEEP_STUBS);
 
 
-        this.processor = Mockito.spy(new ResolverThreatsProcessor(nonIndexingRemoteCacheManager, indexingRemoteCacheManager, 1));
+        this.processor = Mockito.spy(new ResolverThreatsProcessor(nonIndexingRemoteCacheManager, indexingRemoteCacheManager, 1, null, null));
 
         doReturn(blacklistedRecordRemoteCache).when(nonIndexingRemoteCacheManager).getCache(SinkitCacheName.infinispan_blacklist.name());
         final CloseableIterator<Map.Entry<Object, Object>> blackrecordsIterator = Mockito.mock(CloseableIterator.class);
@@ -155,10 +154,10 @@ public class ResolverThreatsProcessorIntegrationTest {
         assertThat(exported, Matchers.is(true));
 
         ArgumentCaptor<ByteBuffer> content1Captor = ArgumentCaptor.forClass(ByteBuffer.class);
-        verify(mockExporter).export(eq(resolverConfiguration), content1Captor.capture());
+        verify(mockExporter).export(eq(resolverConfiguration), content1Captor.capture(), isNull());
 
         ArgumentCaptor<ByteBuffer> content2Captor = ArgumentCaptor.forClass(ByteBuffer.class);
-        verify(mockExporter).export(eq(resolverConfiguration2), content2Captor.capture());
+        verify(mockExporter).export(eq(resolverConfiguration2), content2Captor.capture(), isNull());
 
         assertThat(content1Captor.getValue(), notNullValue());
         assertThat(content2Captor.getValue(), notNullValue());

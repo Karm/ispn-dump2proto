@@ -13,6 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,7 +61,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
     /**
      * @see biz.karms.protostream.threat.task.ResolverCacheExportTask#export
      */
-    public void export(final ResolverConfiguration resolverConfiguration, final ByteBuffer data) {
+    public void export(final ResolverConfiguration resolverConfiguration, final ByteBuffer data, final ThreadPoolExecutor notificationExecutor) {
         logger.log(Level.INFO, "Entering export...");
         final long start = System.currentTimeMillis();
         final Integer resolverId = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null").getResolverId();
@@ -77,7 +80,20 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                 minioClient.putObject(Dump2Proto.S3_BUCKET_NAME, filename, new ProtostreamTransformerTask.BBufferIStream(data), "application/octet-stream");
                 logger.log(Level.INFO, "S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " finished.");
 
-                // TODO: Send notification?
+                if (D2P_USE_NOTIFICATION_ENDPOINT) {
+                    notificationExecutor.execute(() -> {
+                        final String url = String.format(Dump2Proto.D2P_NOTIFICATION_ENDPOINT_TEMPLATE, resolverId);
+                        try {
+                            final HttpURLConnection myURLConnection = (HttpURLConnection) (new URL(url).openConnection());
+                            myURLConnection.setRequestMethod(Dump2Proto.D2P_NOTIFICATION_ENDPOINT_METHOD);
+                            myURLConnection.setConnectTimeout(Dump2Proto.D2P_NOTIFICATION_ENDPOINT_TIMEOUT_MS);
+                            int responseCode = myURLConnection.getResponseCode();
+                            logger.log(Level.INFO, "HTTP " + responseCode + " from endpoint " + url);
+                        } catch (Exception e) {
+                            logger.log(Level.SEVERE, "Sending notification to endpoint " + url + " failed.", e);
+                        }
+                    });
+                }
 
             } catch (InvalidKeyException e) {
                 logger.log(Level.SEVERE, "Check S3 credentials. Upload failed for file: " + filename, e);

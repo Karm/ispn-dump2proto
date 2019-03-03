@@ -11,10 +11,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -99,6 +96,17 @@ public class Dump2Proto {
     public static final String S3_REGION = System.getProperty("D2P_S3_REGION");
 
     /**
+     * Notification endpoint
+     */
+    public static final String D2P_NOTIFICATION_ENDPOINT_TEMPLATE = System.getProperty("D2P_NOTIFICATION_ENDPOINT_TEMPLATE",
+            "http://wsproxy_adddress:8080/wsproxy/rest/message/%d/updatecache");
+    public static final String D2P_NOTIFICATION_ENDPOINT_METHOD = System.getProperty("D2P_NOTIFICATION_ENDPOINT_METHOD",
+            "POST");
+    public static final int D2P_NOTIFICATION_ENDPOINT_TIMEOUT_MS = Integer.parseInt(System.getProperty("D2P_NOTIFICATION_ENDPOINT_TIMEOUT_MS", "2000"));
+    public static final boolean D2P_USE_NOTIFICATION_ENDPOINT = Boolean.parseBoolean(System.getProperty("D2P_USE_NOTIFICATION_ENDPOINT", "False"));
+
+
+    /**
      * Resolver listeners and work partitioning
      */
     public static final Boolean ENABLE_CACHE_LISTENERS = Boolean.parseBoolean(System.getProperty("D2P_ENABLE_CACHE_LISTENERS"));
@@ -107,13 +115,15 @@ public class Dump2Proto {
     /**
      * corePoolSize: 1, The idea is that we prefer the tasks being randomly delayed by one another rather than having them executed simultaneously.
      */
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
-    private final ScheduledExecutorService customListGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    private final ScheduledExecutorService resolverCacheGeneratorScheduler = Executors.newScheduledThreadPool(1);
-    private final ScheduledExecutorService resolverCacheListenerGeneratorScheduler = Executors.newScheduledThreadPool(5);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+    // private final ScheduledExecutorService customListGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    // private final ScheduledExecutorService iocGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    // private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    // private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    // private final ScheduledExecutorService resolverCacheGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    // private final ScheduledExecutorService resolverCacheListenerGeneratorScheduler = Executors.newScheduledThreadPool(2);
+
+    private final ThreadPoolExecutor notificationExecutor;
 
     private final MyCacheManagerProvider myCacheManagerProvider;
 
@@ -148,6 +158,11 @@ public class Dump2Proto {
         //final ConcurrentLinkedDeque<Integer> endUserConfigIDs = new ConcurrentLinkedDeque<>();
         resolverIDs = new ConcurrentLinkedDeque<>();
 
+        if (D2P_USE_NOTIFICATION_ENDPOINT) {
+            notificationExecutor = new ThreadPoolExecutor(5, 60, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        } else {
+            notificationExecutor = null;
+        }
 
         //TODO: Validation
 
@@ -163,13 +178,14 @@ public class Dump2Proto {
         }
 
         if (D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S > 0) {
-            this.resolverCacheListenerGeneratorHandle = resolverCacheListenerGeneratorScheduler
+            this.resolverCacheListenerGeneratorHandle = scheduler
                     .scheduleAtFixedRate(
                             new ResolverThreatsGenerator(
                                     myCacheManagerProvider.getCacheManager(),
                                     myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     D2P_RESOLVER_CACHE_BATCH_SIZE_S,
-                                    resolverIDs),
+                                    resolverIDs,
+                                    notificationExecutor),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S, SECONDS);
         } else {
@@ -184,7 +200,8 @@ public class Dump2Proto {
                                     myCacheManagerProvider.getCacheManager(),
                                     myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     D2P_RESOLVER_CACHE_BATCH_SIZE_S,
-                                    null),
+                                    null,
+                                    notificationExecutor),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
         } else {

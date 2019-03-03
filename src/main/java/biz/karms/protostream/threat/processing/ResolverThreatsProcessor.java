@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,12 +35,13 @@ public class ResolverThreatsProcessor {
 
     private static final int MIN_BATCH_SIZE = 10;
     private static final int MAX_BATCH_SIZE = 100;
-    private static final int MAX_BULK_SIZE = 10_000;
+    private static final int MAX_BULK_SIZE = 15_000;
 
     private final int batchSize;
     private final RemoteCacheManager remoteCacheManager;
     private final RemoteCacheManager remoteCacheManagerForIndexedCaches;
     private final ConcurrentLinkedDeque<Integer> resolverIDs;
+    private final ThreadPoolExecutor notificationExecutor;
 
     public static Logger getLogger() {
         return logger;
@@ -56,12 +58,13 @@ public class ResolverThreatsProcessor {
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
     public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches,
-                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs) {
+                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs, ThreadPoolExecutor notificationExecutor) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
         this.batchSize = batchSize < MIN_BATCH_SIZE ? MIN_BATCH_SIZE : (batchSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : batchSize);
         this.resolverIDs = resolverIDs;
+        this.notificationExecutor = notificationExecutor;
     }
 
     /**
@@ -242,7 +245,7 @@ public class ResolverThreatsProcessor {
                 CompletableFuture.completedFuture(resolverRecord)
                         .thenApply(record -> new ProtostreamTransformerTask(resolverConfiguration).transformToProtobuf(record))
                         .thenApply(data -> {
-                            resolverCacheExportTask.export(resolverConfiguration, data);
+                            resolverCacheExportTask.export(resolverConfiguration, data, notificationExecutor);
                             return null;
                         })
                         .exceptionally(e -> handleException(e, isPassed))
