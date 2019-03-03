@@ -16,6 +16,7 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,6 +39,7 @@ public class ResolverThreatsProcessor {
     private final int batchSize;
     private final RemoteCacheManager remoteCacheManager;
     private final RemoteCacheManager remoteCacheManagerForIndexedCaches;
+    private final ConcurrentLinkedDeque<Integer> resolverIDs;
 
     public static Logger getLogger() {
         return logger;
@@ -53,11 +55,13 @@ public class ResolverThreatsProcessor {
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
-    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches, int batchSize) {
+    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches,
+                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
         this.batchSize = batchSize < MIN_BATCH_SIZE ? MIN_BATCH_SIZE : (batchSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : batchSize);
+        this.resolverIDs = resolverIDs;
     }
 
     /**
@@ -86,9 +90,23 @@ public class ResolverThreatsProcessor {
         final long start = System.currentTimeMillis();
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.resolver_configuration.name());
+
         //TODO: Do even/odd for resolver keys
         //TODO: Order by change
-        final Set<Integer> keys = resolverConfigurationCache.keySet();
+        final Set<Integer> keys;
+        if (resolverIDs == null || resolverIDs.isEmpty()) {
+            keys = resolverConfigurationCache.keySet();
+            logger.log(Level.INFO, "Getting all " + keys.size() + " Resolver IDs from cache and processing them...");
+        } else {
+            keys = new HashSet<>();
+            Integer resolverID;
+            // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
+            while ((resolverID = resolverIDs.poll()) != null) {
+                keys.add(resolverID);
+            }
+            logger.log(Level.INFO, "Working with " + keys.size() + " Resolver IDs that changed recently...");
+        }
+
         final List<ResolverConfiguration> configurations;
         if (Dump2Proto.REVERSE_RESOLVERS_ORDER) {
             configurations = resolverConfigurationCache.getAll(keys).values().stream()

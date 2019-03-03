@@ -11,6 +11,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -74,6 +75,7 @@ public class Dump2Proto {
      * Resolver generator interval
      */
     private static final long D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S", "0"));
+    private static final long D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S", "0"));
     private static final int D2P_RESOLVER_CACHE_BATCH_SIZE_S = Integer.parseInt(System.getProperty("D2P_RESOLVER_CACHE_BATCH_SIZE_S", "20"));
 
     /**
@@ -111,6 +113,7 @@ public class Dump2Proto {
     private final ScheduledExecutorService iocWithCustomlistGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService whitelistGeneratorScheduler = Executors.newScheduledThreadPool(1);
     private final ScheduledExecutorService resolverCacheGeneratorScheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService resolverCacheListenerGeneratorScheduler = Executors.newScheduledThreadPool(5);
 
     private final MyCacheManagerProvider myCacheManagerProvider;
 
@@ -120,9 +123,12 @@ public class Dump2Proto {
     private final ScheduledFuture<?> iocGeneratorHandle;
     private final ScheduledFuture<?> allIocWithCustomlistGeneratorHandle;
     private final ScheduledFuture<?> resolverCacheGeneratorHandle;
+    private final ScheduledFuture<?> resolverCacheListenerGeneratorHandle;
     private final ScheduledFuture<?> whitelistGeneratorHandle;
     private final ScheduledFuture<?> allCustomlistGeneratorHandle;
     private final ScheduledFuture<?> iocDumperHandle;
+
+    private final ConcurrentLinkedDeque<Integer> resolverIDs;
 
     private static class ShutdownHook extends Thread {
         private final MyCacheManagerProvider myCacheManagerProvider;
@@ -139,6 +145,10 @@ public class Dump2Proto {
 
     private Dump2Proto(final MyCacheManagerProvider myCacheManagerProvider) {
 
+        //final ConcurrentLinkedDeque<Integer> endUserConfigIDs = new ConcurrentLinkedDeque<>();
+        resolverIDs = new ConcurrentLinkedDeque<>();
+
+
         //TODO: Validation
 
         this.myCacheManagerProvider = myCacheManagerProvider;
@@ -147,15 +157,34 @@ public class Dump2Proto {
 
         if (ENABLE_CACHE_LISTENERS) {
             myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.resolver_configuration.name())
-                    .addClientListener(new ResolverCacheUpdateListener());
+                    .addClientListener(new ResolverCacheUpdateListener(resolverIDs));
             myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.end_user_configuration.name())
                     .addClientListener(new EndUserCacheUpdateListener());
+        }
+
+        if (D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S > 0) {
+            this.resolverCacheListenerGeneratorHandle = resolverCacheListenerGeneratorScheduler
+                    .scheduleAtFixedRate(
+                            new ResolverThreatsGenerator(
+                                    myCacheManagerProvider.getCacheManager(),
+                                    myCacheManagerProvider.getCacheManagerForIndexableCaches(),
+                                    D2P_RESOLVER_CACHE_BATCH_SIZE_S,
+                                    resolverIDs),
+                            (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
+                            D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S, SECONDS);
+        } else {
+            this.resolverCacheListenerGeneratorHandle = null;
         }
 
         if (D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S > 0) {
             //this.resolverCacheGeneratorHandle = resolverCacheGeneratorScheduler
             this.resolverCacheGeneratorHandle = scheduler // shared scheduler with IocProtostreamGenerator
-                    .scheduleAtFixedRate(new ResolverThreatsGenerator(myCacheManagerProvider.getCacheManager(), myCacheManagerProvider.getCacheManagerForIndexableCaches(), D2P_RESOLVER_CACHE_BATCH_SIZE_S),
+                    .scheduleAtFixedRate(
+                            new ResolverThreatsGenerator(
+                                    myCacheManagerProvider.getCacheManager(),
+                                    myCacheManagerProvider.getCacheManagerForIndexableCaches(),
+                                    D2P_RESOLVER_CACHE_BATCH_SIZE_S,
+                                    null),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_GENERATOR_INTERVAL_S, SECONDS);
         } else {

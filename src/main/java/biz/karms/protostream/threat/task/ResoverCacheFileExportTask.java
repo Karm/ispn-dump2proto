@@ -76,6 +76,9 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                 logger.log(Level.INFO, "S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " started.");
                 minioClient.putObject(Dump2Proto.S3_BUCKET_NAME, filename, new ProtostreamTransformerTask.BBufferIStream(data), "application/octet-stream");
                 logger.log(Level.INFO, "S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " finished.");
+
+                // TODO: Send notification?
+
             } catch (InvalidKeyException e) {
                 logger.log(Level.SEVERE, "Check S3 credentials. Upload failed for file: " + filename, e);
             } catch (InsufficientDataException e) {

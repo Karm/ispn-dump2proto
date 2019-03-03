@@ -15,9 +15,7 @@ import java.util.logging.Logger;
 @ClientListener
 public class EndUserCacheUpdateListener {
 
-    protected static final Logger log = Logger.getLogger(EndUserCacheUpdateListener.class.getName());
-
-    //final ConcurrentLinkedDeque<Integer> endUserConfigIDs = new ConcurrentLinkedDeque<>();
+    private static final Logger log = Logger.getLogger(EndUserCacheUpdateListener.class.getName());
 
     @ClientCacheEntryCreated
     public void handleCreatedEvent(ClientCacheEntryCreatedEvent e) {
