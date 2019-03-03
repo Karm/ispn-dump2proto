@@ -16,14 +16,17 @@ public class ResolverThreatsGenerator implements Runnable {
     private RemoteCacheManager remoteCacheManagerForIndexableCaches;
     private int batchSize;
     private final ConcurrentLinkedDeque<Integer> resolverIDs;
+    private final ConcurrentLinkedDeque<Integer> clientIDs;
     private final ThreadPoolExecutor notificationExecutor;
 
     public ResolverThreatsGenerator(RemoteCacheManager remoteCacheManager, RemoteCacheManager remoteCacheManagerForIndexableCaches,
-                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs, ThreadPoolExecutor notificationExecutor) {
+                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs,
+                                    ConcurrentLinkedDeque<Integer> clientIDs, ThreadPoolExecutor notificationExecutor) {
         this.remoteCacheManager = remoteCacheManager;
         this.remoteCacheManagerForIndexableCaches = remoteCacheManagerForIndexableCaches;
         this.batchSize = batchSize;
         this.resolverIDs = resolverIDs;
+        this.clientIDs = clientIDs;
         this.notificationExecutor = notificationExecutor;
     }
 
@@ -35,7 +38,13 @@ public class ResolverThreatsGenerator implements Runnable {
         }
         logger.log(Level.INFO, "Starting exporting resolvers' cache data...");
         long start = System.currentTimeMillis();
-        final boolean isAllProcessed = new ResolverThreatsProcessor(remoteCacheManager, remoteCacheManagerForIndexableCaches, batchSize, resolverIDs, notificationExecutor).process();
+        final boolean isAllProcessed = new ResolverThreatsProcessor(
+                remoteCacheManager,
+                remoteCacheManagerForIndexableCaches,
+                batchSize,
+                resolverIDs,
+                clientIDs,
+                notificationExecutor).process();
         logger.log(Level.INFO, "Exporting of resolvers' cache data has finished " + (isAllProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
     }
 }

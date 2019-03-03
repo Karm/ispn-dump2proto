@@ -12,6 +12,9 @@ import lombok.Setter;
 import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.Search;
+import org.infinispan.query.dsl.Query;
+import org.infinispan.query.dsl.QueryFactory;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -41,6 +44,7 @@ public class ResolverThreatsProcessor {
     private final RemoteCacheManager remoteCacheManager;
     private final RemoteCacheManager remoteCacheManagerForIndexedCaches;
     private final ConcurrentLinkedDeque<Integer> resolverIDs;
+    private final ConcurrentLinkedDeque<Integer> clientIDs;
     private final ThreadPoolExecutor notificationExecutor;
 
     public static Logger getLogger() {
@@ -57,13 +61,18 @@ public class ResolverThreatsProcessor {
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
-    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager, final RemoteCacheManager remoteCacheManagerForIndexedCaches,
-                                    int batchSize, ConcurrentLinkedDeque<Integer> resolverIDs, ThreadPoolExecutor notificationExecutor) {
+    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager,
+                                    final RemoteCacheManager remoteCacheManagerForIndexedCaches,
+                                    final int batchSize,
+                                    final ConcurrentLinkedDeque<Integer> resolverIDs,
+                                    final ConcurrentLinkedDeque<Integer> clientIDs,
+                                    final ThreadPoolExecutor notificationExecutor) {
         this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
         this.batchSize = batchSize < MIN_BATCH_SIZE ? MIN_BATCH_SIZE : (batchSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : batchSize);
         this.resolverIDs = resolverIDs;
+        this.clientIDs = clientIDs;
         this.notificationExecutor = notificationExecutor;
     }
 
@@ -97,16 +106,39 @@ public class ResolverThreatsProcessor {
         //TODO: Do even/odd for resolver keys
         //TODO: Order by change
         final Set<Integer> keys;
-        if (resolverIDs == null || resolverIDs.isEmpty()) {
+        if ((resolverIDs == null || resolverIDs.isEmpty()) && (clientIDs == null || clientIDs.isEmpty())) {
             keys = resolverConfigurationCache.keySet();
             logger.log(Level.INFO, "Getting all " + keys.size() + " Resolver IDs from cache and processing them...");
         } else {
             keys = new HashSet<>();
-            Integer resolverID;
-            // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
-            while ((resolverID = resolverIDs.poll()) != null) {
-                keys.add(resolverID);
+
+            // Process resolver IDs
+            if (resolverIDs != null) {
+                Integer resolverID;
+                // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
+                while ((resolverID = resolverIDs.poll()) != null) {
+                    keys.add(resolverID);
+                }
             }
+
+            // Process client IDs
+            if (clientIDs != null) {
+                Set<Integer> clientIDsToProcess = new HashSet<>();
+                Integer clientID;
+                // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
+                while ((clientID = clientIDs.poll()) != null) {
+                    clientIDsToProcess.add(clientID);
+                }
+                // We need to fetch all resolver IDs for these client IDs
+                final QueryFactory qf = Search.getQueryFactory(resolverConfigurationCache);
+                final Query query = qf.from(ResolverConfiguration.class)
+                        .having("clientId").in(clientIDsToProcess)
+                        .toBuilder()
+                        .build();
+                final List<ResolverConfiguration> resolverConfigurations = query.list();
+                resolverConfigurations.forEach(c -> keys.add(c.getResolverId()));
+            }
+
             logger.log(Level.INFO, "Working with " + keys.size() + " Resolver IDs that changed recently...");
         }
 

@@ -139,6 +139,7 @@ public class Dump2Proto {
     private final ScheduledFuture<?> iocDumperHandle;
 
     private final ConcurrentLinkedDeque<Integer> resolverIDs;
+    private final ConcurrentLinkedDeque<Integer> clientIDs;
 
     private static class ShutdownHook extends Thread {
         private final MyCacheManagerProvider myCacheManagerProvider;
@@ -155,8 +156,6 @@ public class Dump2Proto {
 
     private Dump2Proto(final MyCacheManagerProvider myCacheManagerProvider) {
 
-        //final ConcurrentLinkedDeque<Integer> endUserConfigIDs = new ConcurrentLinkedDeque<>();
-        resolverIDs = new ConcurrentLinkedDeque<>();
 
         if (D2P_USE_NOTIFICATION_ENDPOINT) {
             notificationExecutor = new ThreadPoolExecutor(5, 60, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
@@ -171,10 +170,15 @@ public class Dump2Proto {
         Runtime.getRuntime().addShutdownHook(jvmShutdownHook);
 
         if (ENABLE_CACHE_LISTENERS) {
+            resolverIDs = new ConcurrentLinkedDeque<>();
+            clientIDs = new ConcurrentLinkedDeque<>();
             myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.resolver_configuration.name())
                     .addClientListener(new ResolverCacheUpdateListener(resolverIDs));
             myCacheManagerProvider.getCacheManagerForIndexableCaches().getCache(SinkitCacheName.end_user_configuration.name())
-                    .addClientListener(new EndUserCacheUpdateListener());
+                    .addClientListener(new EndUserCacheUpdateListener(clientIDs));
+        } else {
+            resolverIDs = null;
+            clientIDs = null;
         }
 
         if (D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S > 0) {
@@ -185,6 +189,7 @@ public class Dump2Proto {
                                     myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     D2P_RESOLVER_CACHE_BATCH_SIZE_S,
                                     resolverIDs,
+                                    clientIDs,
                                     notificationExecutor),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
                             D2P_RESOLVER_CACHE_LISTENER_GENERATOR_INTERVAL_S, SECONDS);
@@ -200,6 +205,7 @@ public class Dump2Proto {
                                     myCacheManagerProvider.getCacheManager(),
                                     myCacheManagerProvider.getCacheManagerForIndexableCaches(),
                                     D2P_RESOLVER_CACHE_BATCH_SIZE_S,
+                                    null,
                                     null,
                                     notificationExecutor),
                             (new Random()).nextInt((MAX_DELAY_BEFORE_START_S - MIN_DELAY_BEFORE_START_S) + 1) + MIN_DELAY_BEFORE_START_S,
