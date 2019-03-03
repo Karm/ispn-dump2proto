@@ -32,7 +32,7 @@ public class ResolverThreatsGenerator implements Runnable {
 
     @Override
     public void run() {
-        if (resolverIDs != null && resolverIDs.isEmpty()) {
+        if ((resolverIDs != null && resolverIDs.isEmpty()) && (clientIDs != null && clientIDs.isEmpty()) ) {
             logger.log(Level.INFO, "There are no recently changed resolvers, skipping...");
             return;
         }
