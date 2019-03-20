@@ -123,7 +123,10 @@ public class ResolverThreatTask {
                 .filter(conf -> this.resolverConfiguration.getClientId().equals(conf.getClientId()))
                 .forEach(c -> {
                     domainFromCustomLists.addAll(c.getBlacklist());
-                    domainFromCustomLists.addAll(c.getWhitelist());
+
+                    // We don't want to hit each smtp.seznam.cz etc. on the first lookup. White custom lists will be used later
+                    // if the domain is already considered for blocking.
+                    // domainFromCustomLists.addAll(c.getWhitelist());
                 });
         domainFromCustomLists.forEach(domain -> {
             final BigInteger crc64 = getCrc64(domain);
