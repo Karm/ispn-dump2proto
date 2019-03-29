@@ -1,8 +1,9 @@
 package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.protostream.threat.domain.PolicyRecord;
-import java.io.IOException;
 import org.infinispan.protostream.MessageMarshaller;
+
+import java.io.IOException;
 
 public class PolicyRecordMarshaller implements MessageMarshaller<PolicyRecord> {
     @Override
@@ -16,7 +17,7 @@ public class PolicyRecordMarshaller implements MessageMarshaller<PolicyRecord> {
     }
 
     @Override
-    public PolicyRecord readFrom(ProtoStreamReader reader) throws IOException {
+    public PolicyRecord readFrom(ProtoStreamReader reader) {
         throw new UnsupportedOperationException("Read operation is not supported");
     }
 

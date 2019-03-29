@@ -1,11 +1,12 @@
 package biz.karms.protostream.threat.domain;
 
 import biz.karms.sinkit.ejb.util.CIDRUtils;
-import java.io.Serializable;
-import java.net.UnknownHostException;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+
+import java.io.Serializable;
+import java.net.UnknownHostException;
 
 @Getter
 public class IpRangesRecord implements Serializable {

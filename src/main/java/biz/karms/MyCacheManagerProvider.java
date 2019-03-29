@@ -3,22 +3,7 @@ package biz.karms;
 import biz.karms.cache.annotations.SinkitCacheName;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.WhitelistedRecord;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.CustomListMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.EndUserConfigurationMessageMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.ImmutablePairMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.PolicyCustomListsMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.PolicyMessageMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.ResolverConfigurationMessageMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.RuleMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.StrategyMessageMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.marshallers.StrategyParamsMessageMarshaller;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import biz.karms.sinkit.ejb.cache.pojo.marshallers.*;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.exceptions.TransportException;
@@ -26,6 +11,10 @@ import org.infinispan.client.hotrod.marshall.ProtoStreamMarshaller;
 import org.infinispan.protostream.FileDescriptorSource;
 import org.infinispan.protostream.SerializationContext;
 import org.infinispan.query.remote.client.ProtobufMetadataManagerConstants;
+
+import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Michal Karm Babacek
@@ -51,31 +40,31 @@ public class MyCacheManagerProvider {
         this.hotrodPort = hotrodPort;
         this.hotrodTimeout = hotrodTimeout;
 
-        log.log(Level.INFO, "Constructing caches...");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Constructing caches...");
 
-        if (cacheManagerForIndexableCaches == null) {
-            org.infinispan.client.hotrod.configuration.ConfigurationBuilder builder = new org.infinispan.client.hotrod.configuration.ConfigurationBuilder();
-            builder.addServer()
-                    .host(hotrodHost)
-                    .port(hotrodPort)
-                    .marshaller(new ProtoStreamMarshaller());
-            cacheManagerForIndexableCaches = new RemoteCacheManager(builder.build());
-        }
+        org.infinispan.client.hotrod.configuration.ConfigurationBuilder builder = new org.infinispan.client.hotrod.configuration.ConfigurationBuilder();
+        builder.tcpKeepAlive(true)
+                .tcpNoDelay(true)
+                .connectionPool()
+                .addServer()
+                .host(hotrodHost)
+                .port(hotrodPort)
+                .marshaller(new ProtoStreamMarshaller());
+        cacheManagerForIndexableCaches = new RemoteCacheManager(builder.build());
 
-        if (cacheManager == null) {
-            org.infinispan.client.hotrod.configuration.ConfigurationBuilder builder = new org.infinispan.client.hotrod.configuration.ConfigurationBuilder();
-            builder.tcpKeepAlive(true)
-                    .tcpNoDelay(true)
-                    .connectionPool()
-                    .numTestsPerEvictionRun(3)
-                    .testOnBorrow(false)
-                    .testOnReturn(false)
-                    .testWhileIdle(true)
-                    .addServer()
-                    .host(hotrodHost)
-                    .port(hotrodPort);
-            cacheManager = new RemoteCacheManager(builder.build());
-        }
+
+        builder = new org.infinispan.client.hotrod.configuration.ConfigurationBuilder();
+        builder.tcpKeepAlive(true)
+                .tcpNoDelay(true)
+                .connectionPool()
+                .numTestsPerEvictionRun(3)
+                .testOnBorrow(false)
+                .testOnReturn(false)
+                .testWhileIdle(true)
+                .addServer()
+                .host(hotrodHost)
+                .port(hotrodPort);
+        cacheManager = new RemoteCacheManager(builder.build());
 
         final SerializationContext ctx = ProtoStreamMarshaller.getSerializationContext(cacheManagerForIndexableCaches);
         ctx.registerProtoFiles(FileDescriptorSource.fromResources(RULE_PROTOBUF_DEFINITION_RESOURCE));
@@ -94,17 +83,17 @@ public class MyCacheManagerProvider {
 
         long timestamp = System.currentTimeMillis();
         while (!setupMetadataCache() && System.currentTimeMillis() - timestamp < hotrodTimeout) {
-            log.log(Level.INFO, "XXX");
+            log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": XXX");
             Thread.sleep(1000L);
-            log.log(Level.INFO, "Waiting for the Hot Rod server on " + hotrodHost + ":" + hotrodPort + " to come up until " +
+            log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Waiting for the Hot Rod server on " + hotrodHost + ":" + hotrodPort + " to come up until " +
                     (System.currentTimeMillis() - timestamp) + " < " + hotrodTimeout);
         }
 
-        log.log(Level.INFO, "Managers started.");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Managers started.");
     }
 
     private boolean setupMetadataCache() throws IOException {
-        log.log(Level.INFO, "setupMetadataCache");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": setupMetadataCache");
         try {
             final RemoteCache<String, String> metadataCache = cacheManagerForIndexableCaches.getCache(ProtobufMetadataManagerConstants.PROTOBUF_METADATA_CACHE_NAME);
             metadataCache.put(RULE_PROTOBUF_DEFINITION_RESOURCE, readResource(RULE_PROTOBUF_DEFINITION_RESOURCE));
@@ -140,7 +129,7 @@ public class MyCacheManagerProvider {
         if (cacheManager == null) {
             throw new IllegalArgumentException("Manager must not be null.");
         }
-        log.log(Level.INFO, "getBlacklistCache called.");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": getBlacklistCache called.");
         return cacheManager.getCache(SinkitCacheName.infinispan_blacklist.toString());
     }
 
@@ -148,7 +137,7 @@ public class MyCacheManagerProvider {
         if (cacheManager == null) {
             throw new IllegalArgumentException("Manager must not be null.");
         }
-        log.log(Level.INFO, "getWhitelistCache called.");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": getWhitelistCache called.");
         return cacheManager.getCache(SinkitCacheName.infinispan_whitelist.toString());
     }
 

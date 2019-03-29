@@ -26,13 +26,13 @@ public class EndUserCacheUpdateListener {
 
     @ClientCacheEntryCreated
     public void handleCreatedEvent(ClientCacheEntryCreatedEvent e) {
-        log.log(Level.INFO, "End user configuration created: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": End user configuration created: " + e.getKey());
         clientIDs.push(Integer.parseInt(((String) e.getKey()).split(":")[0]));
     }
 
     @ClientCacheEntryModified
     public void handleModifiedEvent(ClientCacheEntryModifiedEvent e) {
-        log.log(Level.INFO, "End user configuration modified: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": End user configuration modified: " + e.getKey());
         clientIDs.push(Integer.parseInt(((String) e.getKey()).split(":")[0]));
     }
 

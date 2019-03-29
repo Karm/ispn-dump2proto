@@ -1,15 +1,14 @@
 package biz.karms.protostream.threat.processing;
 
 import biz.karms.Dump2Proto;
+import biz.karms.protostream.ioc.IoCKeeper;
 import biz.karms.protostream.threat.domain.*;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
 import biz.karms.protostream.threat.task.*;
 import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
-import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import lombok.Setter;
-import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.Search;
@@ -38,14 +37,13 @@ public class ResolverThreatsProcessor {
 
     private static final int MIN_BATCH_SIZE = 10;
     private static final int MAX_BATCH_SIZE = 100;
-    private static final int MAX_BULK_SIZE = 15_000;
 
     private final int batchSize;
-    private final RemoteCacheManager remoteCacheManager;
     private final RemoteCacheManager remoteCacheManagerForIndexedCaches;
     private final ConcurrentLinkedDeque<Integer> resolverIDs;
     private final ConcurrentLinkedDeque<Integer> clientIDs;
     private final ThreadPoolExecutor notificationExecutor;
+    private final IoCKeeper ioCKeeper;
 
     public static Logger getLogger() {
         return logger;
@@ -57,23 +55,22 @@ public class ResolverThreatsProcessor {
     /**
      * Constructor creates this processor
      *
-     * @param remoteCacheManager                 remoteCacheManager which accesses remote caches
      * @param remoteCacheManagerForIndexedCaches remoteCacheManager which accesses indexed remote caches
      * @param batchSize                          resolvers' batch size (how many resolvers will be processed in a chunk)
      */
-    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManager,
-                                    final RemoteCacheManager remoteCacheManagerForIndexedCaches,
+    public ResolverThreatsProcessor(final RemoteCacheManager remoteCacheManagerForIndexedCaches,
                                     final int batchSize,
                                     final ConcurrentLinkedDeque<Integer> resolverIDs,
                                     final ConcurrentLinkedDeque<Integer> clientIDs,
-                                    final ThreadPoolExecutor notificationExecutor) {
-        this.remoteCacheManager = Objects.requireNonNull(remoteCacheManager, "RemoteCacheManager cannot be null for processing");
+                                    final ThreadPoolExecutor notificationExecutor,
+                                    final IoCKeeper ioCKeeper) {
         this.remoteCacheManagerForIndexedCaches = Objects
                 .requireNonNull(remoteCacheManagerForIndexedCaches, "RemoteCacheManager for indexed caches cannot be null for processing");
         this.batchSize = batchSize < MIN_BATCH_SIZE ? MIN_BATCH_SIZE : (batchSize > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : batchSize);
         this.resolverIDs = resolverIDs;
         this.clientIDs = clientIDs;
         this.notificationExecutor = notificationExecutor;
+        this.ioCKeeper = Objects.requireNonNull(ioCKeeper, "IoCKeeper cannot be null for processing");
     }
 
     /**
@@ -98,7 +95,7 @@ public class ResolverThreatsProcessor {
      * @return updated processing context
      */
     ProcessingContext fetchResolverConfigurations(ProcessingContext context) {
-        logger.log(Level.INFO, "Entering fetchResolverConfigurations...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering fetchResolverConfigurations...");
         final long start = System.currentTimeMillis();
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.resolver_configuration.name());
@@ -108,28 +105,33 @@ public class ResolverThreatsProcessor {
         final Set<Integer> keys;
         if ((resolverIDs == null || resolverIDs.isEmpty()) && (clientIDs == null || clientIDs.isEmpty())) {
             keys = resolverConfigurationCache.keySet();
-            logger.log(Level.INFO, "Getting all " + keys.size() + " Resolver IDs from cache and processing them...");
+            logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Getting all " + keys.size() + " Resolver IDs from cache and processing them...");
         } else {
             keys = new HashSet<>();
 
             // Process resolver IDs
             if (resolverIDs != null) {
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Using Resolver IDs collected from events.");
                 Integer resolverID;
                 // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
                 while ((resolverID = resolverIDs.poll()) != null) {
                     keys.add(resolverID);
                 }
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + keys.size() + " Resolver IDs collected.");
             }
 
             // Process client IDs
             if (clientIDs != null) {
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Using Client IDs collected from events.");
                 Set<Integer> clientIDsToProcess = new HashSet<>();
                 Integer clientID;
                 // Why poll and not getting all? The collection is being modified concurrently, there might be records being added at this moment.
                 while ((clientID = clientIDs.poll()) != null) {
                     clientIDsToProcess.add(clientID);
                 }
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + clientIDsToProcess.size() + " Client IDs collected.");
                 // We need to fetch all resolver IDs for these client IDs
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Converting Client IDs to Resolver IDs...");
                 final QueryFactory qf = Search.getQueryFactory(resolverConfigurationCache);
                 final Query query = qf.from(ResolverConfiguration.class)
                         .having("clientId").in(clientIDsToProcess)
@@ -137,9 +139,10 @@ public class ResolverThreatsProcessor {
                         .build();
                 final List<ResolverConfiguration> resolverConfigurations = query.list();
                 resolverConfigurations.forEach(c -> keys.add(c.getResolverId()));
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + keys.size() + " Resolver IDs collected.");
             }
 
-            logger.log(Level.INFO, "Working with " + keys.size() + " Resolver IDs that changed recently...");
+            logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Working with " + keys.size() + " Resolver IDs that changed recently...");
         }
 
         final List<ResolverConfiguration> configurations;
@@ -151,7 +154,7 @@ public class ResolverThreatsProcessor {
                     .sorted(Comparator.comparing(ResolverConfiguration::getResolverId)).collect(Collectors.toList());
         }
         context.setResolverConfigurations(configurations);
-        logger.log(Level.INFO, "fetchResolverConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": fetchResolverConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
     }
 
@@ -162,14 +165,14 @@ public class ResolverThreatsProcessor {
      * @return updated processing context
      */
     ProcessingContext fetchEndUserConfigurations(ProcessingContext context) {
-        logger.log(Level.INFO, "Entering fetchEndUserConfigurations...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering fetchEndUserConfigurations...");
         final long start = System.currentTimeMillis();
         final RemoteCache<String, EndUserConfiguration> endUserConfigurationRemoteCache = remoteCacheManagerForIndexedCaches
                 .getCache(SinkitCacheName.end_user_configuration.name());
         final Set<String> keys = endUserConfigurationRemoteCache.keySet();
         final Collection<EndUserConfiguration> endUserRecords = endUserConfigurationRemoteCache.getAll(keys).values();
         context.setEndUserRecords(endUserRecords);
-        logger.log(Level.INFO, "fetchEndUserConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": fetchEndUserConfigurations finished in " + (System.currentTimeMillis() - start) + " ms.");
         return context;
     }
 
@@ -180,27 +183,7 @@ public class ResolverThreatsProcessor {
      * @return updated processing context
      */
     ProcessingContext fetchBlacklistedRecord(ProcessingContext context) {
-        logger.log(Level.INFO, "Entering fetchBlacklistedRecord...");
-        final long start = System.currentTimeMillis();
-        final RemoteCache<String, BlacklistedRecord> cache = remoteCacheManager.getCache(SinkitCacheName.infinispan_blacklist.name());
-        final Set<String> iocKeys = new HashSet<>(cache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
-        final Collection<BlacklistedRecord> blacklistedRecords = new ArrayList<>(iocKeys.size());
-        final int bulks = (iocKeys.size() % MAX_BULK_SIZE == 0) ? iocKeys.size() / MAX_BULK_SIZE : iocKeys.size() / MAX_BULK_SIZE + 1;
-        logger.log(Level.INFO, "fetchBlacklistedRecord: There are " + iocKeys.size() + " ioc keys to get data for in " + bulks + " bulks. Ioc keys retrieval took " + (System.currentTimeMillis() - start) + " ms.");
-
-        final long startBulks = System.currentTimeMillis();
-        for (int iteration = 0; iteration < bulks; iteration++) {
-            final long startBulk = System.currentTimeMillis();
-            final Set<String> bulkOfKeys = iocKeys.stream().unordered().limit(MAX_BULK_SIZE).collect(Collectors.toSet());
-            iocKeys.removeAll(bulkOfKeys);
-            // getAll on the cache - a very expensive call
-            blacklistedRecords.addAll(cache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys).values());
-            logger.info("fetchBlacklistedRecord: Retrieved bulk " + iteration + " in " + (System.currentTimeMillis() - startBulk) + " ms.");
-        }
-        logger.info("fetchBlacklistedRecord: All bulks retrieved in " + (System.currentTimeMillis() - startBulks) + " ms.");
-
-        context.setBlacklistedRecords(blacklistedRecords);
-        logger.log(Level.INFO, "fetchBlacklistedRecord finished in " + (System.currentTimeMillis() - start) + " ms.");
+        context.setBlacklistedRecords(ioCKeeper.getBlacklistedRecords());
         return context;
     }
 
@@ -211,7 +194,7 @@ public class ResolverThreatsProcessor {
      * @return number of processed resolvers
      */
     boolean processResolvers(final ProcessingContext context) {
-        logger.log(Level.INFO, "Entering processResolvers...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering processResolvers...");
         final long start = System.currentTimeMillis();
         final List<ResolverConfiguration> allResolvers = new ArrayList<>(context.getResolverConfigurations());
 
@@ -222,7 +205,7 @@ public class ResolverThreatsProcessor {
                 .reduce(0, Integer::sum);
 
         final boolean hasBeenAllResolversProcessed = allResolvers.size() == countOfProcessedResolvers;
-        logger.log(Level.INFO, "Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Resolvers have been processed " + (hasBeenAllResolversProcessed ? "successfully" : "unsuccessfully") + " in " + (System.currentTimeMillis() - start) + " ms.");
         return hasBeenAllResolversProcessed;
     }
 
@@ -235,7 +218,8 @@ public class ResolverThreatsProcessor {
      */
     int processResolversBatch(final List<ResolverConfiguration> resolverConfigurations, final ProcessingContext context) {
 
-        // use parallel stream - more threads handle the processing - bigger memory footprint
+        // Use parallel stream causes OOM - more threads handle the processing - bigger memory footprint
+        // OOM git:24bf6838: at biz.karms.protostream.threat.processing.ResolverThreatsProcessor.lambda$processResolversBatch$7(ResolverThreatsProcessor.java:261)
         // single stream is slower, lower memory footprint
         return resolverConfigurations.stream().map(resolverConfiguration -> {
             // users custom list task

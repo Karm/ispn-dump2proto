@@ -1,12 +1,8 @@
 package biz.karms;
 
 import biz.karms.protostream.IoCDumper;
-import biz.karms.protostream.ioc.marshallers.AccuracyMarshaller;
-import biz.karms.protostream.ioc.marshallers.BlacklistedRecordListMarshaller;
-import biz.karms.protostream.ioc.marshallers.BlacklistedRecordMarshaller;
-import biz.karms.protostream.ioc.marshallers.NameNumberMarshaller;
-import biz.karms.protostream.ioc.marshallers.SourceMarshaller;
-import biz.karms.protostream.ioc.marshallers.TypeIocIDMarshaller;
+import biz.karms.protostream.ioc.IoCKeeper;
+import biz.karms.protostream.ioc.marshallers.*;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.protostream.FileDescriptorSource;
@@ -56,7 +52,7 @@ public class CacheUploader {
         }
 
         public void run() {
-            log.log(Level.INFO, "Shutting down.");
+            log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Shutting down.");
             myCacheManagerProvider.destroy();
         }
     }
@@ -68,7 +64,7 @@ public class CacheUploader {
     }
 
     public void upload(final File protobuffer) {
-        log.log(Level.INFO, "Cache upload processing started.");
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Cache upload processing started.");
 
 
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder()
@@ -117,7 +113,7 @@ public class CacheUploader {
                 return;
             }
             System.out.print(System.lineSeparator());
-            log.log(Level.INFO, "Deserialization of " + records.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
+            log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Deserialization of " + records.size() + " records took " + (System.currentTimeMillis() - start) + " ms.");
         } else {
             log.log(Level.SEVERE, String.format("%s does not exist. Aborting.", protobuffer.getAbsolutePath()));
             return;
@@ -145,7 +141,7 @@ public class CacheUploader {
         log.log(Level.INFO, String.format("Upload of %d records took %d ms.", records.size(), (System.currentTimeMillis() - start)));
     }
 
-    public MyCacheManagerProvider getMyCacheManagerProvider() {
+    private MyCacheManagerProvider getMyCacheManagerProvider() {
         return myCacheManagerProvider;
     }
 
@@ -157,9 +153,13 @@ public class CacheUploader {
             cacheUploader.upload(new File(args[1]));
         } else if ("-d".equals(args[0])) {
             //TODO: use filepath
-            Thread t = new Thread(new IoCDumper(cacheUploader.getMyCacheManagerProvider().getBlacklistCache()));
-            t.start();
-            t.join();
+            final IoCKeeper ioCKeeper = IoCKeeper.getIoCKeeper(cacheUploader.getMyCacheManagerProvider().getCacheManager());
+            final Thread tKeeper = new Thread(ioCKeeper);
+            tKeeper.start();
+            tKeeper.join();
+            final Thread tDumper = new Thread(new IoCDumper(ioCKeeper));
+            tDumper.start();
+            tDumper.join();
         } else {
             log.log(Level.SEVERE, String.format("Command %s is unknown. Use -d for dump and -u for upload.", args[0]));
         }

@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat.processing;
 
+import biz.karms.protostream.ioc.IoCKeeper;
 import biz.karms.protostream.threat.exception.ResolverProcessingException;
 import biz.karms.protostream.threat.task.ResolverCacheExportTask;
 import biz.karms.protostream.threat.task.ResolverProcessingTask;
@@ -53,7 +54,7 @@ public class ResolverThreatsProcessorTest {
     @Before
     public void setUp() throws NoSuchFieldException, IllegalAccessException {
         MockitoAnnotations.initMocks(this);
-        this.processor = spy(new ResolverThreatsProcessor(remoteCacheManager, remoteCacheManagerForIndexedCaches, 20, null, null, null));
+        this.processor = spy(new ResolverThreatsProcessor(remoteCacheManagerForIndexedCaches, 20, null, null, null, IoCKeeper.getIoCKeeper(remoteCacheManager)));
 
         // replace final logger
         final Field loggerField = ResolverThreatsProcessor.class.getDeclaredField("logger");

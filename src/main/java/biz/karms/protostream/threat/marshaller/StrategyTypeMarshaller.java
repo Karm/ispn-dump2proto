@@ -1,6 +1,7 @@
 package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.sinkit.resolver.StrategyType;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +16,6 @@ public class StrategyTypeMarshaller {
         mapping.put(StrategyType.whitelist, 4);
         mapping.put(StrategyType.drop, 8);
     }
-
 
     public int marshall(StrategyType strategyType) {
         return mapping.get(strategyType);

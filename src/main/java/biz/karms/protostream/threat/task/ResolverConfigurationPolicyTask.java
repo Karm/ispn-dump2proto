@@ -34,7 +34,7 @@ public class ResolverConfigurationPolicyTask {
      * @return list of policy records
      */
     public List<PolicyRecord> processData() {
-        logger.log(Level.INFO, "Entering processData...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering processData...");
         final long start = System.currentTimeMillis();
         final List<PolicyRecord> policyRecords = this.resolverConfiguration.getPolicies().stream().map(currentPolicy -> {
             final Optional<Integer> auditOptional = Optional.ofNullable(currentPolicy).map(Policy::getStrategy).map(Strategy::getStrategyParams)
@@ -47,7 +47,7 @@ public class ResolverConfigurationPolicyTask {
 
             return policyRecord;
         }).collect(Collectors.toList());
-        logger.log(Level.INFO, "processData finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": processData finished in " + (System.currentTimeMillis() - start) + " ms.");
         return policyRecords;
     }
 }

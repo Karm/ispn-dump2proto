@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat;
 
+import biz.karms.protostream.ioc.IoCKeeper;
 import biz.karms.protostream.threat.processing.ResolverThreatsProcessor;
 import biz.karms.protostream.threat.task.ResolverCacheExportTask;
 import biz.karms.sinkit.ejb.cache.annotations.SinkitCacheName;
@@ -117,7 +118,7 @@ public class ResolverThreatsProcessorIntegrationTest {
         final RemoteCache<Integer, ResolverConfiguration> resolverConfigurationRemoteCache = Mockito.mock(RemoteCache.class, RETURNS_DEEP_STUBS);
 
 
-        this.processor = Mockito.spy(new ResolverThreatsProcessor(nonIndexingRemoteCacheManager, indexingRemoteCacheManager, 1, null, null, null));
+        this.processor = Mockito.spy(new ResolverThreatsProcessor(indexingRemoteCacheManager, 1, null, null, null, IoCKeeper.getIoCKeeper(nonIndexingRemoteCacheManager)));
 
         doReturn(blacklistedRecordRemoteCache).when(nonIndexingRemoteCacheManager).getCache(SinkitCacheName.infinispan_blacklist.name());
         final CloseableIterator<Map.Entry<Object, Object>> blackrecordsIterator = Mockito.mock(CloseableIterator.class);

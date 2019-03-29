@@ -1,7 +1,7 @@
 package biz.karms.protostream.threat.domain;
 
 /**
- Enumeration represents threat slot flag
+ * Enumeration represents threat slot flag
  */
 public enum Flag {
 

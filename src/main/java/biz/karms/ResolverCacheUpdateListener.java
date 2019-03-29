@@ -26,13 +26,13 @@ public class ResolverCacheUpdateListener {
 
     @ClientCacheEntryCreated
     public void handleCreatedEvent(ClientCacheEntryCreatedEvent e) {
-        log.log(Level.INFO, "Resolver created: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Resolver created: " + e.getKey());
         resolverIDs.push((Integer) e.getKey());
     }
 
     @ClientCacheEntryModified
     public void handleModifiedEvent(ClientCacheEntryModifiedEvent e) {
-        log.log(Level.INFO, "Resolver modified: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Resolver modified: " + e.getKey());
         resolverIDs.push((Integer) e.getKey());
     }
 

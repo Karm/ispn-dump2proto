@@ -56,7 +56,7 @@ public class DomainExploderTest {
     @Ignore
     @Test(dataProvider = "domainFilesProvider")
     void explodeTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
-        log.info("domainsFile: " + domainsFile);
+        log.info("Thread " + Thread.currentThread().getName() + ": domainsFile: " + domainsFile);
         System.out.println("Progress:");
         try (Stream<String> stream = Files.lines(Paths.get(domainsFile))) {
             stream.forEach(fqdn -> {

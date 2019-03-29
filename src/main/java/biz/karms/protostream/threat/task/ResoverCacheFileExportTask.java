@@ -53,7 +53,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                 logger.log(Level.SEVERE, "MinioClient initialization failed. S3 cannot be used.", e);
             }
         } else {
-            logger.log(Level.INFO, "S3 Won't be used.");
+            logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": S3 Won't be used.");
         }
         this.minioClient = minioClientTmp;
     }
@@ -62,7 +62,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
      * @see biz.karms.protostream.threat.task.ResolverCacheExportTask#export
      */
     public void export(final ResolverConfiguration resolverConfiguration, final ByteBuffer data, final ThreadPoolExecutor notificationExecutor) {
-        logger.log(Level.INFO, "Entering export...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering export...");
         final long start = System.currentTimeMillis();
         final Integer resolverId = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null").getResolverId();
 
@@ -71,14 +71,14 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
             try {
                 boolean isExist = minioClient.bucketExists(Dump2Proto.S3_BUCKET_NAME);
                 if (isExist) {
-                    logger.log(Level.INFO, "Bucket " + Dump2Proto.S3_BUCKET_NAME + " already exist. Using it.");
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Bucket " + Dump2Proto.S3_BUCKET_NAME + " already exist. Using it.");
                 } else {
-                    logger.log(Level.INFO, "Bucket " + Dump2Proto.S3_BUCKET_NAME + " does not exist. Creating it.");
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Bucket " + Dump2Proto.S3_BUCKET_NAME + " does not exist. Creating it.");
                     minioClient.makeBucket(Dump2Proto.S3_BUCKET_NAME, Dump2Proto.S3_REGION);
                 }
-                logger.log(Level.INFO, "S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " started.");
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " started.");
                 minioClient.putObject(Dump2Proto.S3_BUCKET_NAME, filename, new ProtostreamTransformerTask.BBufferIStream(data), "application/octet-stream");
-                logger.log(Level.INFO, "S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " finished.");
+                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": S3 upload of file " + filename + " to bucket " + Dump2Proto.S3_BUCKET_NAME + " finished.");
 
                 if (D2P_USE_NOTIFICATION_ENDPOINT) {
                     notificationExecutor.execute(() -> {
@@ -88,7 +88,7 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                             myURLConnection.setRequestMethod(Dump2Proto.D2P_NOTIFICATION_ENDPOINT_METHOD);
                             myURLConnection.setConnectTimeout(Dump2Proto.D2P_NOTIFICATION_ENDPOINT_TIMEOUT_MS);
                             int responseCode = myURLConnection.getResponseCode();
-                            logger.log(Level.INFO, "HTTP " + responseCode + " from endpoint " + url);
+                            logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": HTTP " + responseCode + " from endpoint " + url);
                         } catch (Exception e) {
                             logger.log(Level.SEVERE, "Sending notification to endpoint " + url + " failed.", e);
                         }
@@ -147,6 +147,6 @@ public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteB
                         ResolverProcessingTask.EXPORTING);
             }
         }
-        logger.log(Level.INFO, "Export finished in " + (System.currentTimeMillis() - start) + " ms. Resolver " + resolverId + " written.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Export finished in " + (System.currentTimeMillis() - start) + " ms. Resolver " + resolverId + " written.");
     }
 }

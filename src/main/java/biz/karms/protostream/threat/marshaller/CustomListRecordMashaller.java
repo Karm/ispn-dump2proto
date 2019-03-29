@@ -1,8 +1,9 @@
 package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.protostream.threat.domain.CustomListRecord;
-import java.io.IOException;
 import org.infinispan.protostream.MessageMarshaller;
+
+import java.io.IOException;
 
 public class CustomListRecordMashaller implements MessageMarshaller<CustomListRecord> {
     @Override

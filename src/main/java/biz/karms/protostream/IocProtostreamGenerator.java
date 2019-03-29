@@ -1,13 +1,12 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
+import biz.karms.protostream.ioc.IoCKeeper;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
-import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.Search;
@@ -25,20 +24,14 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
-import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.attr;
-import static biz.karms.Dump2Proto.options;
+import static biz.karms.Dump2Proto.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.util.stream.Collectors.toCollection;
 
 /**
  * @author Michal Karm Babacek
@@ -47,24 +40,28 @@ public class IocProtostreamGenerator implements Runnable {
 
     private static final Logger log = Logger.getLogger(IocProtostreamGenerator.class.getName());
 
-    private final RemoteCache<String, BlacklistedRecord> blacklistCache;
+    private final IoCKeeper ioCKeeper;
 
     private final RemoteCacheManager cacheManagerForIndexableCaches;
-
-    private static final int MAX_BULK_SIZE = 10_000;
 
     private static final String iocListFilePath = GENERATED_PROTOFILES_DIRECTORY + "/ioclist.bin";
     private static final String iocListFilePathTmp = GENERATED_PROTOFILES_DIRECTORY + "/ioclist.bin.tmp";
     private static final String iocListFileMd5 = GENERATED_PROTOFILES_DIRECTORY + "/ioclist.bin.md5";
     private static final String iocListFileMd5Tmp = GENERATED_PROTOFILES_DIRECTORY + "/ioclist.bin.md5.tmp";
 
-    public IocProtostreamGenerator(final RemoteCacheManager cacheManagerForIndexableCaches, final RemoteCache<String, BlacklistedRecord> blacklistCache) {
-        this.blacklistCache = blacklistCache;
+    public IocProtostreamGenerator(final RemoteCacheManager cacheManagerForIndexableCaches, final IoCKeeper ioCKeeper) {
+        this.ioCKeeper = ioCKeeper;
         this.cacheManagerForIndexableCaches = cacheManagerForIndexableCaches;
     }
 
     @Override
     public void run() {
+
+        if (ioCKeeper.getBlacklistedRecords().isEmpty()) {
+            log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": IoCKeeper holds no IoCs, probably not ready yet. Skipping this iteration.");
+            return;
+        }
+
         long overallStart = System.currentTimeMillis();
         long start = overallStart;
         final RemoteCache<String, Rule> rulesCache = cacheManagerForIndexableCaches.getCache(SinkitCacheName.infinispan_rules.toString());
@@ -75,8 +72,8 @@ public class IocProtostreamGenerator implements Runnable {
         final Map<Integer, Set<String>> custIdFeedUidsSink = new HashMap<>();
         final Map<Integer, Set<String>> custIdFeedUidsLog = new HashMap<>();
         results.forEach(r -> {
-            final HashSet<String> sinkFeeduids = new HashSet<>(r.getSources().entrySet().stream().filter(e -> "S".equals(e.getValue())).map(Map.Entry::getKey).collect(Collectors.toSet()));
-            final HashSet<String> logFeeduids = new HashSet<>(r.getSources().entrySet().stream().filter(e -> "L".equals(e.getValue())).map(Map.Entry::getKey).collect(Collectors.toSet()));
+            final HashSet<String> sinkFeeduids = r.getSources().entrySet().stream().filter(e -> "S".equals(e.getValue())).map(Map.Entry::getKey).collect(toCollection(HashSet::new));
+            final HashSet<String> logFeeduids = r.getSources().entrySet().stream().filter(e -> "L".equals(e.getValue())).map(Map.Entry::getKey).collect(toCollection(HashSet::new));
             if (custIdFeedUidsSink.containsKey(r.getCustomerId())) {
                 custIdFeedUidsSink.get(r.getCustomerId()).addAll(sinkFeeduids);
             } else {
@@ -88,64 +85,39 @@ public class IocProtostreamGenerator implements Runnable {
                 custIdFeedUidsLog.put(r.getCustomerId(), logFeeduids);
             }
         });
-        log.info("IOCListProtostreamGenerator: Will process IoCs for " + custIdFeedUidsSink.size() + " customer Sink ids.");
-        log.info("IOCListProtostreamGenerator: Will process IoCs for " + custIdFeedUidsLog.size() + " customer Log ids.");
-        log.info("IOCListProtostreamGenerator: FeedUids lookup took " + (System.currentTimeMillis() - start) + " ms.");
+        log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: Will process IoCs for " + custIdFeedUidsSink.size() + " customer Sink ids.");
+        log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: Will process IoCs for " + custIdFeedUidsLog.size() + " customer Log ids.");
+        log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: FeedUids lookup took " + (System.currentTimeMillis() - start) + " ms.");
 
         // final List<String> feeduids = results.stream().map(Rule::getSources).collect(Collectors.toList()).stream().map(Map::keySet).flatMap(Set::stream).collect(Collectors.toList());
         final Map<Integer, Map<String, Action>> preparedHashes = new HashMap<>();
 
-        start = System.currentTimeMillis();
-        // keySet on the cache - a very expensive call, dozens of seconds for single digit millions o records
-        final Set<String> iocKeys = new HashSet<>(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet());
-        final Map<String, BlacklistedRecord> iocs = new HashMap<>(MAX_BULK_SIZE);
-        final int bulks = (iocKeys.size() % MAX_BULK_SIZE == 0) ? iocKeys.size() / MAX_BULK_SIZE : iocKeys.size() / MAX_BULK_SIZE + 1;
-        log.info("IOCListProtostreamGenerator: There are " + iocKeys.size() + " ioc keys to get data for in " + bulks + " bulks. Ioc keys retrieval took " + (System.currentTimeMillis() - start) + " ms.");
-
-        long startBulks = System.currentTimeMillis();
-        for (int iteration = 0; iteration < bulks; iteration++) {
-            start = System.currentTimeMillis();
-            log.info("IOCListProtostreamGenerator: Processing bulk " + iteration + " of " + bulks + " bulks...");
-            final Set<String> bulkOfKeys = iocKeys.stream().unordered().limit(MAX_BULK_SIZE).collect(Collectors.toSet());
-            iocKeys.removeAll(bulkOfKeys);
-            // getAll on the cache - a very expensive call
-            iocs.putAll(blacklistCache.withFlags(Flag.SKIP_CACHE_LOAD).getAll(bulkOfKeys));
-            log.info("IOCListProtostreamGenerator: Retrieved bulk " + iteration + " in " + (System.currentTimeMillis() - start) + " ms.");
-            start = System.currentTimeMillis();
-            //iocs.forEach((k, v) -> {
-            //TODO: forEach((k,v) ->), do we need parallel?
-            iocs.entrySet().stream().unordered().forEach(entry -> {
-                String k = entry.getKey();
-                BlacklistedRecord v = entry.getValue();
-
+        ioCKeeper.getBlacklistedRecords().stream().unordered().forEach(v -> {
+            String k = v.getBlackListedDomainOrIP();
             if (!v.getPresentOnWhiteList()) {
-                    v.getSources().keySet().forEach(feeduid -> {
-                        custIdFeedUidsLog.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
-                            if (preparedHashes.containsKey(found.getKey())) {
-                                preparedHashes.get(found.getKey()).put(k, Action.LOG);
-                            } else {
-                                final Map<String, Action> newHashes = new HashMap<>();
-                                newHashes.put(k, Action.LOG);
-                                preparedHashes.put(found.getKey(), newHashes);
-                            }
-                        });
-                        custIdFeedUidsSink.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
-                            if (preparedHashes.containsKey(found.getKey())) {
-                                preparedHashes.get(found.getKey()).put(k, Action.BLACK);
-                            } else {
-                                final Map<String, Action> newHashes = new HashMap<>();
-                                newHashes.put(k, Action.BLACK);
-                                preparedHashes.put(found.getKey(), newHashes);
-                            }
-                        });
+                v.getSources().keySet().forEach(feeduid -> {
+                    custIdFeedUidsLog.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
+                        if (preparedHashes.containsKey(found.getKey())) {
+                            preparedHashes.get(found.getKey()).put(k, Action.LOG);
+                        } else {
+                            final Map<String, Action> newHashes = new HashMap<>();
+                            newHashes.put(k, Action.LOG);
+                            preparedHashes.put(found.getKey(), newHashes);
+                        }
                     });
-                }
+                    custIdFeedUidsSink.entrySet().stream().filter(e -> e.getValue().contains(feeduid)).forEach(found -> {
+                        if (preparedHashes.containsKey(found.getKey())) {
+                            preparedHashes.get(found.getKey()).put(k, Action.BLACK);
+                        } else {
+                            final Map<String, Action> newHashes = new HashMap<>();
+                            newHashes.put(k, Action.BLACK);
+                            preparedHashes.put(found.getKey(), newHashes);
+                        }
+                    });
+                });
+            }
 
-            });
-            iocs.clear();
-            log.info("IOCListProtostreamGenerator: Processed bulk " + iteration + " in " + (System.currentTimeMillis() - start) + " ms.");
-        }
-        log.info("IOCListProtostreamGenerator: All " + bulks + " bulks done in " + (System.currentTimeMillis() - startBulks) + " ms.");
+        });
 
         // Serialization fo tiles
         start = System.currentTimeMillis();
@@ -163,31 +135,31 @@ public class IocProtostreamGenerator implements Runnable {
 
         final AtomicInteger workCounter = new AtomicInteger(1);
         preparedHashes.forEach((k, v) -> {
-            log.info("IOCListProtostreamGenerator: processing Ioc data file for serialization " + workCounter.getAndIncrement() + "/" + preparedHashes.size() + ", customer id: " + k);
+            log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: processing Ioc data file for serialization " + workCounter.getAndIncrement() + "/" + preparedHashes.size() + ", customer id: " + k);
             Path iocListFilePathTmpP = Paths.get(iocListFilePathTmp + k);
             Path iocListFilePathP = Paths.get(iocListFilePath + k);
             try (SeekableByteChannel s = Files.newByteChannel(iocListFilePathTmpP, options, attr)) {
                 s.write(ProtobufUtil.toByteBuffer(ctx, v));
-                log.info("IOCListProtostreamGenerator: " + iocListFilePathTmp + k + " written.");
+                log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: " + iocListFilePathTmp + k + " written.");
             } catch (IOException e) {
                 log.severe("IOCListProtostreamGenerator: failed protobuffer serialization for customer id " + k);
                 e.printStackTrace();
             }
             try (FileInputStream fis = new FileInputStream(new File(iocListFilePathTmp + k))) {
                 Files.write(Paths.get(iocListFileMd5Tmp + k), DigestUtils.md5Hex(fis).getBytes());
-                log.info("IOCListProtostreamGenerator: " + iocListFileMd5Tmp + k + " written.");
+                log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: " + iocListFileMd5Tmp + k + " written.");
                 // There is a race condition when we swap files while REST API is reading them...
                 Files.move(iocListFilePathTmpP, iocListFilePathP, REPLACE_EXISTING);
-                log.info("IOCListProtostreamGenerator: " + iocListFilePathTmp + k + " moved to " + iocListFilePath + k + ".");
+                log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: " + iocListFilePathTmp + k + " moved to " + iocListFilePath + k + ".");
                 Files.move(Paths.get(iocListFileMd5Tmp + k), Paths.get(iocListFileMd5 + k), REPLACE_EXISTING);
-                log.info("IOCListProtostreamGenerator: " + iocListFileMd5Tmp + k + " moved to " + iocListFileMd5 + k + ".");
+                log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: " + iocListFileMd5Tmp + k + " moved to " + iocListFileMd5 + k + ".");
             } catch (IOException e) {
                 log.severe("IOCListProtostreamGenerator: failed protofile manipulation for customer id " + k);
                 e.printStackTrace();
             }
         });
-        log.info("IOCListProtostreamGenerator: Serialization of ioc lists took: " + (System.currentTimeMillis() - start) + " ms.");
+        log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: Serialization of ioc lists took: " + (System.currentTimeMillis() - start) + " ms.");
         long overallTimeSpent = (System.currentTimeMillis() - overallStart);
-        log.info("IOCListProtostreamGenerator: All IoC processing took " + overallTimeSpent + " ms.");
+        log.info("Thread " + Thread.currentThread().getName() + ": IOCListProtostreamGenerator: All IoC processing took " + overallTimeSpent + " ms.");
     }
 }

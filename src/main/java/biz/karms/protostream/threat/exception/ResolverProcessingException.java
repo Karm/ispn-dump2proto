@@ -4,7 +4,7 @@ import biz.karms.protostream.threat.task.ResolverProcessingTask;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 import lombok.Getter;
 
-public class ResolverProcessingException extends RuntimeException{
+public class ResolverProcessingException extends RuntimeException {
 
     @Getter
     private ResolverConfiguration resolverConfiguration;

@@ -27,6 +27,7 @@ public class BlacklistedRecordListMarshaller implements MessageMarshaller<ArrayL
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void writeTo(ProtoStreamWriter writer, ArrayList records) throws IOException {
         writer.writeCollection("blacklistedRecords", records, BlacklistedRecord.class);
     }

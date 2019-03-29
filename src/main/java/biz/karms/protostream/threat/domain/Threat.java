@@ -1,15 +1,16 @@
 package biz.karms.protostream.threat.domain;
 
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
@@ -92,6 +93,7 @@ public class Threat implements Serializable {
 
     /**
      * Method returning flag whether this threat is set or empty
+     *
      * @return true if any slot is set otherwise false
      */
     public boolean isSet() {
