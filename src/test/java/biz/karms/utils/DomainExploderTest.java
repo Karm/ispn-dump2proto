@@ -24,7 +24,7 @@ public class DomainExploderTest {
     @DataProvider(name = "domainFilesProvider")
     public Object[][] domainFilesProvider() {
         return new Object[][]{
-                {String.class, "many_levels.txt"}//,
+                {String.class, "ignored/many_levels.txt"}//,
                 //{String.class, "1000_domains.txt"}//,
                 //{String.class, "10000_domains.txt"}
         };
