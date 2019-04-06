@@ -48,8 +48,7 @@ public class ProtostreamTransformerTask {
      */
     public <T> ByteBuffer transformToProtobuf(T record) {
         try {
-            ByteBuffer byteBuffer = ProtobufUtil.toByteBuffer(ctx, record);
-            return byteBuffer;
+            return ProtobufUtil.toByteBuffer(ctx, record);
         } catch (IOException e) {
             throw new ResolverProcessingException(e, resolverConfiguration, ResolverProcessingTask.PROTOBUF_SERIALIZATION);
         }

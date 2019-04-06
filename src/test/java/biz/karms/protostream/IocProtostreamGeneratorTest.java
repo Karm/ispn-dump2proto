@@ -2,6 +2,7 @@ package biz.karms.protostream;
 
 import biz.karms.MyCacheManagerProvider;
 import biz.karms.crc64java.CRC64;
+import biz.karms.protostream.ioc.IoCKeeper;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.ejb.cache.pojo.Rule;
 import biz.karms.utils.CIDRUtils;
@@ -42,7 +43,7 @@ public class IocProtostreamGeneratorTest {
 
     @Test(dataProvider = "domainFilesProvider", enabled = false)
     void iocProtostreamGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
-        log.info("domainsFile: " + domainsFile);
+        log.info("Thread " + Thread.currentThread().getName() + ": domainsFile: " + domainsFile);
 
         final MyCacheManagerProvider myCacheManagerProvider = new MyCacheManagerProvider(
                 System.getProperty("D2P_HOTROD_HOST"),
@@ -135,8 +136,12 @@ public class IocProtostreamGeneratorTest {
         }
         System.out.print('\n');
 
+        final IoCKeeper ioCKeeper = IoCKeeper.getIoCKeeper(cacheManagerForIndexableCaches);
+        final Thread tKeeper = new Thread(ioCKeeper);
+        tKeeper.start();
+        tKeeper.join();
 
-        final Thread generatorThread = new Thread(new IocProtostreamGenerator(cacheManagerForIndexableCaches, blacklistCache));
+        final Thread generatorThread = new Thread(new IocProtostreamGenerator(cacheManagerForIndexableCaches, ioCKeeper));
         generatorThread.start();
         generatorThread.join();
 

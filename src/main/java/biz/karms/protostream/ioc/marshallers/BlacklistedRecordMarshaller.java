@@ -10,11 +10,7 @@ import org.infinispan.protostream.MessageMarshaller;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +28,7 @@ public class BlacklistedRecordMarshaller implements MessageMarshaller<Blackliste
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public BlacklistedRecord readFrom(ProtoStreamReader reader) throws IOException {
         final Calendar listed = Calendar.getInstance(TimeZone.getDefault());
         listed.setTimeInMillis(reader.readLong("listed"));

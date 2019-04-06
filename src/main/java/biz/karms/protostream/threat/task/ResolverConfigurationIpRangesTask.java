@@ -37,7 +37,7 @@ public class ResolverConfigurationIpRangesTask {
      * @return list of ip ranges records
      */
     public List<IpRangesRecord> processData() {
-        logger.log(Level.INFO, "Entering processData...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering processData...");
         final long start = System.currentTimeMillis();
         final List<IpRangesRecord> ipRangesRecords = this.resolverConfiguration.getPolicies().stream()
                 .map(currentPolicy -> Optional.ofNullable(currentPolicy.getIpRanges()).map(Collection::stream).orElse(Stream.empty()).map(ipRange -> {
@@ -50,7 +50,7 @@ public class ResolverConfigurationIpRangesTask {
                 .collect(ArrayList::new, List::addAll, List::addAll);
 
         ipRangesRecords.sort(new IpRangesComparator());
-        logger.log(Level.INFO, "processData finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": processData finished in " + (System.currentTimeMillis() - start) + " ms.");
         return ipRangesRecords;
     }
 

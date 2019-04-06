@@ -6,6 +6,7 @@ import org.infinispan.client.hotrod.annotation.ClientListener;
 import org.infinispan.client.hotrod.event.ClientCacheEntryCreatedEvent;
 import org.infinispan.client.hotrod.event.ClientCacheEntryModifiedEvent;
 
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,18 +16,24 @@ import java.util.logging.Logger;
 @ClientListener
 public class EndUserCacheUpdateListener {
 
-    protected static final Logger log = Logger.getLogger(EndUserCacheUpdateListener.class.getName());
+    private static final Logger log = Logger.getLogger(EndUserCacheUpdateListener.class.getName());
 
-    //final ConcurrentLinkedDeque<Integer> endUserConfigIDs = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Integer> clientIDs;
+
+    public EndUserCacheUpdateListener(ConcurrentLinkedDeque<Integer> clientIDs) {
+        this.clientIDs = clientIDs;
+    }
 
     @ClientCacheEntryCreated
     public void handleCreatedEvent(ClientCacheEntryCreatedEvent e) {
-        log.log(Level.INFO, "End user configuration created: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": End user configuration created: " + e.getKey());
+        clientIDs.push(Integer.parseInt(((String) e.getKey()).split(":")[0]));
     }
 
     @ClientCacheEntryModified
     public void handleModifiedEvent(ClientCacheEntryModifiedEvent e) {
-        log.log(Level.INFO, "End user configuration modified: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": End user configuration modified: " + e.getKey());
+        clientIDs.push(Integer.parseInt(((String) e.getKey()).split(":")[0]));
     }
 
 }

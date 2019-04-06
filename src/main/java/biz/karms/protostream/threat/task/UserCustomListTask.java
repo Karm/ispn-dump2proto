@@ -32,7 +32,7 @@ public class UserCustomListTask {
      * @return list of custom list record
      */
     public List<CustomListRecord> processData() {
-        logger.log(Level.INFO, "Entering export...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering export...");
         final long start = System.currentTimeMillis();
         final List<CustomListRecord> result = context.getEndUserRecords().stream()
                 .filter(conf -> this.resolverConfiguration.getClientId().equals(conf.getClientId()))
@@ -46,7 +46,7 @@ public class UserCustomListTask {
                     return record;
                 }).collect(Collectors.toList()))
                 .collect(ArrayList::new, List::addAll, List::addAll);
-        logger.log(Level.INFO, "export finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": export finished in " + (System.currentTimeMillis() - start) + " ms.");
         return result;
     }
 }

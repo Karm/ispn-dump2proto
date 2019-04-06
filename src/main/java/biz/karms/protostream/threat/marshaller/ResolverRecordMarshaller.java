@@ -1,12 +1,9 @@
 package biz.karms.protostream.threat.marshaller;
 
-import biz.karms.protostream.threat.domain.CustomListRecord;
-import biz.karms.protostream.threat.domain.IpRangesRecord;
-import biz.karms.protostream.threat.domain.PolicyRecord;
-import biz.karms.protostream.threat.domain.ResolverRecord;
-import biz.karms.protostream.threat.domain.Threat;
-import java.io.IOException;
+import biz.karms.protostream.threat.domain.*;
 import org.infinispan.protostream.MessageMarshaller;
+
+import java.io.IOException;
 
 public class ResolverRecordMarshaller implements MessageMarshaller<ResolverRecord> {
 
@@ -22,7 +19,7 @@ public class ResolverRecordMarshaller implements MessageMarshaller<ResolverRecor
 
 
     @Override
-    public ResolverRecord readFrom(ProtoStreamReader reader) throws IOException {
+    public ResolverRecord readFrom(ProtoStreamReader reader) {
         throw new UnsupportedOperationException("Read operation is not supported");
     }
 
@@ -33,6 +30,4 @@ public class ResolverRecordMarshaller implements MessageMarshaller<ResolverRecor
         writer.writeCollection("ipRanges", resolverRecord.getIpRangesRecords(), IpRangesRecord.class);
         writer.writeCollection("policies", resolverRecord.getPolicyRecords(), PolicyRecord.class);
     }
-
-
 }

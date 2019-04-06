@@ -1,9 +1,9 @@
 package biz.karms.protostream.threat.marshaller;
 
 import biz.karms.protostream.threat.domain.IpRangesRecord;
-import java.io.IOException;
-import java.math.BigInteger;
 import org.infinispan.protostream.MessageMarshaller;
+
+import java.io.IOException;
 
 public class IpRangesRecordMarshaller implements MessageMarshaller<IpRangesRecord> {
     @Override
@@ -17,7 +17,7 @@ public class IpRangesRecordMarshaller implements MessageMarshaller<IpRangesRecor
     }
 
     @Override
-    public IpRangesRecord readFrom(ProtoStreamReader reader) throws IOException {
+    public IpRangesRecord readFrom(ProtoStreamReader reader) {
         throw new UnsupportedOperationException("Read operation is not supported");
     }
 

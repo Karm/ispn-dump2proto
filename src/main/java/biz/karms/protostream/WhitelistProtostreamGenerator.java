@@ -24,10 +24,7 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.attr;
-import static biz.karms.Dump2Proto.options;
+import static biz.karms.Dump2Proto.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
@@ -54,7 +51,7 @@ public class WhitelistProtostreamGenerator implements Runnable {
         // TODO: Well, this hurts...  We wil probably need to use retrieve(...) and operate in chunks.
         // https://github.com/infinispan/infinispan/pull/4975
         final Map<String, Action> whitelist = whitelistCache.withFlags(Flag.SKIP_CACHE_LOAD).keySet().stream().collect(Collectors.toMap(Function.identity(), s -> Action.WHITE));
-        log.info("WhitelistProtostreamGenerator: Pulling whitelist data took: " + (System.currentTimeMillis() - start) + " ms");
+        log.info("Thread " + Thread.currentThread().getName() + ": WhitelistProtostreamGenerator: Pulling whitelist data took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
         try {
@@ -74,7 +71,7 @@ public class WhitelistProtostreamGenerator implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        log.info("WhitelistProtostreamGenerator: Serialization to " + whiteListFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms");
+        log.info("Thread " + Thread.currentThread().getName() + ": WhitelistProtostreamGenerator: Serialization to " + whiteListFilePathTmp + " took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
         try (FileInputStream fis = new FileInputStream(new File(whiteListFilePathTmp))) {
             Files.write(Paths.get(whiteListFileMd5Tmp), DigestUtils.md5Hex(fis).getBytes());
@@ -86,6 +83,6 @@ public class WhitelistProtostreamGenerator implements Runnable {
             log.severe("WhitelistProtostreamGenerator: failed protofile manipulation");
             e.printStackTrace();
         }
-        log.info("WhitelistProtostreamGenerator: MD5 sum and move took: " + (System.currentTimeMillis() - start) + " ms");
+        log.info("Thread " + Thread.currentThread().getName() + ": WhitelistProtostreamGenerator: MD5 sum and move took: " + (System.currentTimeMillis() - start) + " ms");
     }
 }

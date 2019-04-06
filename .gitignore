@@ -25,3 +25,6 @@ ispn-dump2proto.iml
 target
 ignored
 dependency-reduced-pom.xml
+thread-dumps
+iocdump.bin
+threaddump.dump.tdump

@@ -6,6 +6,7 @@ import org.infinispan.client.hotrod.annotation.ClientListener;
 import org.infinispan.client.hotrod.event.ClientCacheEntryCreatedEvent;
 import org.infinispan.client.hotrod.event.ClientCacheEntryModifiedEvent;
 
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,18 +16,24 @@ import java.util.logging.Logger;
 @ClientListener
 public class ResolverCacheUpdateListener {
 
-    protected static final Logger log = Logger.getLogger(ResolverCacheUpdateListener.class.getName());
+    private static final Logger log = Logger.getLogger(ResolverCacheUpdateListener.class.getName());
 
-    //final ConcurrentLinkedDeque<Integer> resolverIDs = new ConcurrentLinkedDeque<>();
+    private final ConcurrentLinkedDeque<Integer> resolverIDs;
+
+    public ResolverCacheUpdateListener(ConcurrentLinkedDeque<Integer> resolverIDs) {
+        this.resolverIDs = resolverIDs;
+    }
 
     @ClientCacheEntryCreated
     public void handleCreatedEvent(ClientCacheEntryCreatedEvent e) {
-        log.log(Level.INFO, "Resolver created: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Resolver created: " + e.getKey());
+        resolverIDs.push((Integer) e.getKey());
     }
 
     @ClientCacheEntryModified
     public void handleModifiedEvent(ClientCacheEntryModifiedEvent e) {
-        log.log(Level.INFO, "Resolver modified: " + e.getKey());
+        log.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Resolver modified: " + e.getKey());
+        resolverIDs.push((Integer) e.getKey());
     }
 
 }

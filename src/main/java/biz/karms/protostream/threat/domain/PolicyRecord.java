@@ -1,9 +1,10 @@
 package biz.karms.protostream.threat.domain;
 
 import biz.karms.sinkit.resolver.StrategyType;
-import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.io.Serializable;
 
 @Getter
 @AllArgsConstructor

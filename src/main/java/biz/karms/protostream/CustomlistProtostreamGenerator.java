@@ -1,10 +1,10 @@
 package biz.karms.protostream;
 
 import biz.karms.cache.annotations.SinkitCacheName;
-import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import biz.karms.protostream.marshallers.ActionMarshaller;
 import biz.karms.protostream.marshallers.CoreCacheMarshaller;
 import biz.karms.protostream.marshallers.SinkitCacheEntryMarshaller;
+import biz.karms.sinkit.ejb.cache.pojo.CustomList;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.infinispan.client.hotrod.RemoteCacheManager;
@@ -28,10 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static biz.karms.Dump2Proto.D2P_CACHE_PROTOBUF;
-import static biz.karms.Dump2Proto.GENERATED_PROTOFILES_DIRECTORY;
-import static biz.karms.Dump2Proto.attr;
-import static biz.karms.Dump2Proto.options;
+import static biz.karms.Dump2Proto.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 /**
@@ -92,7 +89,7 @@ public class CustomlistProtostreamGenerator implements Runnable {
         });
         */
 
-        log.info("CustomlistProtostreamGenerator: Pulling customlist data took: " + (System.currentTimeMillis() - start) + " ms");
+        log.info("Thread " + Thread.currentThread().getName() + ": CustomlistProtostreamGenerator: Pulling customlist data took: " + (System.currentTimeMillis() - start) + " ms");
         start = System.currentTimeMillis();
         final SerializationContext ctx = ProtobufUtil.newSerializationContext(new Configuration.Builder().build());
         try {
@@ -107,7 +104,7 @@ public class CustomlistProtostreamGenerator implements Runnable {
 
         //TODO: forEach((k,v) ->), do we need parallel?
         customerIdDomainData.entrySet().forEach(r -> {
-            log.info("CustomlistProtostreamGenerator: Serializing customer ID: " + r.getKey() + " and its " + r.getValue().size() + " records.");
+            log.info("Thread " + Thread.currentThread().getName() + ": CustomlistProtostreamGenerator: Serializing customer ID: " + r.getKey() + " and its " + r.getValue().size() + " records.");
             final Path customListFilePathTmpP = Paths.get(customListFilePathTmp + r.getKey());
             final Path customListFilePathP = Paths.get(customListFilePath + r.getKey());
             try (SeekableByteChannel s = Files.newByteChannel(customListFilePathTmpP, options, attr)) {
@@ -127,6 +124,6 @@ public class CustomlistProtostreamGenerator implements Runnable {
                 e.printStackTrace();
             }
         });
-        log.info("CustomlistProtostreamGenerator: Serialization of custom lists for " + customerIdDomainData.size() + " customer ids took: " + (System.currentTimeMillis() - start) + " ms.");
+        log.info("Thread " + Thread.currentThread().getName() + ": CustomlistProtostreamGenerator: Serialization of custom lists for " + customerIdDomainData.size() + " customer ids took: " + (System.currentTimeMillis() - start) + " ms.");
     }
 }

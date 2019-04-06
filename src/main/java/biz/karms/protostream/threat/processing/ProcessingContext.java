@@ -3,19 +3,17 @@ package biz.karms.protostream.threat.processing;
 import biz.karms.sinkit.ejb.cache.pojo.BlacklistedRecord;
 import biz.karms.sinkit.resolver.EndUserConfiguration;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
+import lombok.Getter;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
-import lombok.Getter;
-import org.infinispan.client.hotrod.RemoteCacheManager;
-
 
 @Getter
 public class ProcessingContext {
     private Collection<ResolverConfiguration> resolverConfigurations;
     private Collection<BlacklistedRecord> blacklistedRecords;
     private Collection<EndUserConfiguration> endUserRecords;
-
 
     public ProcessingContext() {
         this.resolverConfigurations = Collections.emptyList();

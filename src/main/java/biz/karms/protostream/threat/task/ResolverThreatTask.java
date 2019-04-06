@@ -46,7 +46,7 @@ public class ResolverThreatTask {
      * @return map keeps threats entities (entry = key is BlacklistedRecord.blackListedDomainOrIP, value is Threat)
      */
     public Map<BigInteger, Threat> processData() {
-        logger.log(Level.INFO, "Entering processData...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering processData...");
         final long start = System.currentTimeMillis();
         // Given the millions of records, parallelStream is faster, but it has higher memory footprint. .stream() is used intentionally.
         final Callable<Map<BigInteger, Threat>> processing = () -> context.getBlacklistedRecords().stream()
@@ -74,7 +74,7 @@ public class ResolverThreatTask {
 
         final ForkJoinPool threadPool = new ForkJoinPool(threadsCount);
         try {
-            logger.log(Level.INFO, "processData finished in " + (System.currentTimeMillis() - start) + " ms.");
+            logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": processData finished in " + (System.currentTimeMillis() - start) + " ms.");
             return threadPool.submit(processing).get();
         } catch (Exception e) {
             throw new ResolverProcessingException(e, resolverConfiguration, ResolverProcessingTask.THREAT_TASK);
@@ -90,7 +90,7 @@ public class ResolverThreatTask {
      * @return final list of threats
      */
     public List<Threat> postProcessData(Map<BigInteger, Threat> resolverThreatData) {
-        logger.log(Level.INFO, "Entering postProcessData...");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering postProcessData...");
         final long start = System.currentTimeMillis();
         for (int policyIdx = 0; policyIdx < this.resolverConfiguration.getPolicies().size(); policyIdx++) {
             final Policy currentPolicy = this.resolverConfiguration.getPolicies().get(policyIdx);
@@ -123,7 +123,9 @@ public class ResolverThreatTask {
                 .filter(conf -> this.resolverConfiguration.getClientId().equals(conf.getClientId()))
                 .forEach(c -> {
                     domainFromCustomLists.addAll(c.getBlacklist());
-                    domainFromCustomLists.addAll(c.getWhitelist());
+                    // We don't want to hit each smtp.seznam.cz etc. on the first lookup. White custom lists will be used later
+                    // if the domain is already considered for blocking.
+                    // domainFromCustomLists.addAll(c.getWhitelist());
                 });
         domainFromCustomLists.forEach(domain -> {
             final BigInteger crc64 = getCrc64(domain);
@@ -140,7 +142,7 @@ public class ResolverThreatTask {
         // Sort the final output
         final List<Threat> values = new ArrayList<>(resolverThreatData.values().stream().sorted(Comparator.comparing(Threat::getCrc64)).collect(Collectors.toList()));
 
-        logger.log(Level.INFO, "postProcessData finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": postProcessData finished in " + (System.currentTimeMillis() - start) + " ms.");
         return values;
     }
 

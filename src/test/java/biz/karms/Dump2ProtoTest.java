@@ -49,7 +49,7 @@ public class Dump2ProtoTest {
     @Ignore
     @Test(dataProvider = "domainFilesProvider", enabled = false)
     void iocGeneratorTest(Class clazz, final String domainsFile) throws IOException, InterruptedException {
-        log.info("domainsFile: " + domainsFile);
+        log.info("Thread " + Thread.currentThread().getName() + ": domainsFile: " + domainsFile);
 
         final MyCacheManagerProvider myCacheManagerProvider = new MyCacheManagerProvider(
                 System.getProperty("D2P_HOTROD_HOST"),
