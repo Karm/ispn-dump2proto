@@ -23,8 +23,8 @@ public class IpRangesRecordMarshaller implements MessageMarshaller<IpRangesRecor
 
     @Override
     public void writeTo(ProtoStreamWriter writer, IpRangesRecord record) throws IOException {
-        writer.writeString("startIpRange", record.getStartIpRange());
-        writer.writeString("endIpRange", record.getEndIpRange());
+        writer.writeBytes("startIpRange", record.getStartIpRangeNum().toByteArray());
+        writer.writeBytes("endIpRange", record.getEndIpRangeNum().toByteArray());
         writer.writeString("identity", null);
         writer.writeInt("policyId", record.getPolicyId());
     }

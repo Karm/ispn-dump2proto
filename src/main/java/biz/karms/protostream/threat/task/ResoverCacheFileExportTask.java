@@ -34,7 +34,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * Export task which export the given bytes into the file and creates md5 sum file as well
  */
 public class ResoverCacheFileExportTask implements ResolverCacheExportTask<ByteBuffer> {
-    private static final String fileNameTemplate = "%s_resolver_cache.bin";
+    private static final String fileNameTemplate = "%s_resolver_cache_v3.bin";
     private static final long MIN_VALID_FILE_SIZE_BYTE = 2;
 
     private static final Logger logger = Logger.getLogger(ResoverCacheFileExportTask.class.getName());

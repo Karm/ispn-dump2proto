@@ -4,7 +4,7 @@
 
     <groupId>biz.karms</groupId>
     <artifactId>ispn-dump2proto</artifactId>
-    <version>2.2-SNAPSHOT</version>
+    <version>3.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>ispn-dump2proto</name>
@@ -48,7 +48,7 @@
         <infinispan.core.version>8.2.6.Final</infinispan.core.version>
         <infinispan.protostream.version>3.0.7.Final-karm-1-SNAPSHOT</infinispan.protostream.version>
         <!-- Sinkit -->
-        <sinkit.version>2.1.0</sinkit.version>
+        <sinkit.version>2.2.1-SNAPSHOT</sinkit.version>
         <!-- Apache commons -->
         <commons.validator.version>1.5.0</commons.validator.version>
         <commons.codec.version>1.10</commons.codec.version>

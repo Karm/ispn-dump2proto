@@ -25,7 +25,7 @@ public class ThreatMarshaller implements MessageMarshaller<Threat> {
 
     @Override
     public void writeTo(ProtoStreamWriter writer, Threat record) throws IOException {
-        writer.writeString("crc64", record.getCrc64().toString());
+        writer.writeBytes("crc64", record.getCrc64().toByteArray());
         writer.writeInt("accuracy", record.getAccuracy());
 
         final List<Integer> flags = record.getSlots().stream().map(flag -> flag != null ? (int) flag.getByteValue() : 0).collect(Collectors.toList());
