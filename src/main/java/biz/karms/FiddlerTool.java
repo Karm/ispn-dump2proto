@@ -28,8 +28,6 @@ public class FiddlerTool {
             Integer.parseInt(System.getProperty("D2P_HOTROD_CONN_TIMEOUT_S")) :
             300;
 
-    private static final int BUCKET_SIZE = 2_000;
-
     private static final Logger log = Logger.getLogger(FiddlerTool.class.getName());
 
     private final MyCacheManagerProvider myCacheManagerProvider;
@@ -82,18 +80,18 @@ public class FiddlerTool {
 
         final BlacklistedRecord blacklistedRecord = blacklistedCache.get(fqdnHashed);
 
-        log.log(Level.ALL, new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create().toJson(blacklistedRecord));
+        log.log(Level.INFO, new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create().toJson(blacklistedRecord));
 
         if (blacklistedRecord.getAccuracy() != null) {
             // Compute maximum from each feed, not overall...
             final Optional<Map.Entry<String, HashMap<String, Integer>>> fdcmp = blacklistedRecord.getAccuracy().entrySet().stream()
                     .max(Comparator.comparingInt(s -> s.getValue().values().stream().mapToInt(Integer::intValue).sum()));
-            fdcmp.ifPresent(x -> log.log(Level.ALL, String.format("Old Core: The most accurate feed for domain %s is %s", fqdn, x)));
+            fdcmp.ifPresent(x -> log.log(Level.INFO, String.format("Old Core: The most accurate feed for domain %s is %s", fqdn, x)));
 
-            log.log(Level.ALL, "The biggest accuracy according to Generator's algorithm is: %d", computeMaxAccuracy(blacklistedRecord));
+            log.log(Level.INFO, "The biggest accuracy according to Generator's algorithm is: %d", computeMaxAccuracy(blacklistedRecord));
 
         } else {
-            log.log(Level.ALL, String.format("No accuracy set for tis fqdn %s, terminating.", fqdn));
+            log.log(Level.INFO, String.format("No accuracy set for tis fqdn %s, terminating.", fqdn));
         }
         log.log(Level.INFO, String.format("Ended in %d ms.", (System.currentTimeMillis() - start)));
     }
