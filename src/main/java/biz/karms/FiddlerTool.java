@@ -115,6 +115,6 @@ public class FiddlerTool {
     public static void main(String[] args) throws IOException, InterruptedException {
         log.log(Level.INFO, String.format("HotRod server %s:%d.", D2P_HOTROD_HOST, D2P_HOTROD_PORT));
         final FiddlerTool fiddler = new FiddlerTool(new MyCacheManagerProvider(D2P_HOTROD_HOST, D2P_HOTROD_PORT, D2P_HOTROD_CONN_TIMEOUT_S));
-        fiddler.computeAccuracy(args[1]);
+        fiddler.computeAccuracy(args[0]);
     }
 }

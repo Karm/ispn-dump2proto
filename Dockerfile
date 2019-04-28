@@ -19,6 +19,8 @@ EXPOSE 111/udp 2049/tcp
 ENV D2P_VERSION "3.0-SNAPSHOT"
 # TODO: So something like su -c 'java ...' -s /bin/bash - dump2proto to drop root for java process...
 ADD start.sh /opt/dump2proto/
+# This is used for single-run tests and debugging
+ADD startFiddler.sh /opt/dump2proto/
 RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
         export DBG_OPTS="-Dtrace=org.infinispan -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${D2P_DBG_PORT:-1661} -Xnoagent -Djava.compiler=NONE"; \
     fi; \
