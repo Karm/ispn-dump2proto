@@ -88,7 +88,7 @@ public class FiddlerTool {
                     .max(Comparator.comparingInt(s -> s.getValue().values().stream().mapToInt(Integer::intValue).sum()));
             fdcmp.ifPresent(x -> log.log(Level.INFO, String.format("Old Core: The most accurate feed for domain %s is %s", fqdn, x)));
 
-            log.log(Level.INFO, "The biggest accuracy according to Generator's algorithm is: %d", computeMaxAccuracy(blacklistedRecord));
+            log.log(Level.INFO, String.format("The biggest accuracy according to Generator's algorithm is: %d", computeMaxAccuracy(blacklistedRecord)));
 
         } else {
             log.log(Level.INFO, String.format("No accuracy set for tis fqdn %s, terminating.", fqdn));
