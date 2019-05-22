@@ -18,11 +18,14 @@ public class IpRangesRecord implements Serializable {
 
     private final int policyId;
 
-    public IpRangesRecord(String cidrAddress, int policyId) throws UnknownHostException {
+    private final String identity;
+
+    public IpRangesRecord(String cidrAddress, int policyId, String identity) throws UnknownHostException {
         this.cidrAddress = cidrAddress;
         this.policyId = policyId;
         final ImmutablePair<BigInteger, BigInteger> rangesNum = CIDRUtils.getStartEndAddressesBigInt(cidrAddress);
         this.startIpRangeNum = rangesNum.getLeft();
         this.endIpRangeNum = rangesNum.getRight();
+        this.identity = identity;
     }
 }

@@ -43,6 +43,8 @@ public class UserCustomListTask {
                     record.setIdentity(identity);
                     record.setWhitelist(endUserConfiguration.getWhitelist());
                     record.setBlacklist(endUserConfiguration.getBlacklist());
+                    // Not needed, we tie CustomListRecord to IpRangesRecord via identity string in ResolverConfigurationIpRangesTask
+                    //record.setIpRanges(endUserConfiguration.getIpRanges());
                     return record;
                 }).collect(Collectors.toList()))
                 .collect(ArrayList::new, List::addAll, List::addAll);

@@ -6,12 +6,7 @@ import biz.karms.protostream.threat.processing.ProcessingContext;
 import biz.karms.sinkit.resolver.ResolverConfiguration;
 
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -26,6 +21,8 @@ public class ResolverConfigurationIpRangesTask {
     private final ProcessingContext context;
     private static final Logger logger = Logger.getLogger(ResolverConfigurationIpRangesTask.class.getName());
 
+    public static int DEFAULT_POLICY_ID = 0;
+
     public ResolverConfigurationIpRangesTask(ResolverConfiguration resolverConfiguration, ProcessingContext context) {
         this.resolverConfiguration = Objects.requireNonNull(resolverConfiguration, "resolvers configuration cannot null");
         this.context = Objects.requireNonNull(context, "processing context cannot be null");
@@ -39,18 +36,36 @@ public class ResolverConfigurationIpRangesTask {
     public List<IpRangesRecord> processData() {
         logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Entering processData...");
         final long start = System.currentTimeMillis();
+
+        // IPRanges tied to Policy
         final List<IpRangesRecord> ipRangesRecords = this.resolverConfiguration.getPolicies().stream()
                 .map(currentPolicy -> Optional.ofNullable(currentPolicy.getIpRanges()).map(Collection::stream).orElse(Stream.empty()).map(ipRange -> {
                     try {
-                        return new IpRangesRecord(ipRange, currentPolicy.getId());
+                        return new IpRangesRecord(ipRange, currentPolicy.getId(), null);
                     } catch (UnknownHostException e) {
                         throw new ResolverProcessingException(e, resolverConfiguration, ResolverProcessingTask.IP_RANGES_TASK);
                     }
                 }).collect(Collectors.toList()))
                 .collect(ArrayList::new, List::addAll, List::addAll);
 
+        // More IPRanges, tied to EndUserConfig, a.k.a. CustomLists
+        // n^m where n # of identities and m # of IpRanges? Should be safe, usually there is 1 IpRange for identity anyway.
+        context.getEndUserRecords().stream()
+                .filter(conf -> this.resolverConfiguration.getClientId().equals(conf.getClientId()) && conf.getIpRanges() != null)
+                .forEach(endUserConfiguration -> endUserConfiguration.getIdentities()
+                        .forEach(identity -> {
+                            endUserConfiguration.getIpRanges().forEach(ipRange -> {
+                                try {
+                                    ipRangesRecords.add(new IpRangesRecord(ipRange, DEFAULT_POLICY_ID, identity));
+                                } catch (UnknownHostException e) {
+                                    throw new ResolverProcessingException(e, resolverConfiguration, ResolverProcessingTask.IP_RANGES_TASK);
+                                }
+                            });
+                        }));
+        long startSort = System.currentTimeMillis();
         ipRangesRecords.sort(new IpRangesComparator());
-        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": processData finished in " + (System.currentTimeMillis() - start) + " ms.");
+        logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": processData finished in " + (System.currentTimeMillis() - start) + " ms " +
+                "overall. Sorting took " + (System.currentTimeMillis() - startSort) + " ms of that overall.");
         return ipRangesRecords;
     }
 

@@ -67,7 +67,7 @@ public class ThreatMarshallerTest {
         marshaller.writeTo(writer, record);
 
         // verification
-        verify(writer).writeString("crc64", record.getCrc64().toString());
+        verify(writer).writeBytes("crc64", record.getCrc64().toByteArray());
         verify(writer).writeInt("accuracy", 50);
 
         final ArgumentCaptor<List<Integer>> flagsCaptor = ArgumentCaptor.forClass(List.class);

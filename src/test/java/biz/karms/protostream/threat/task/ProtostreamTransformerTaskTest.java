@@ -33,7 +33,7 @@ public class ProtostreamTransformerTaskTest {
         final List<Threat> threats = Arrays.asList(threat);
 
 
-        final IpRangesRecord ipRangesRecord = new IpRangesRecord("10.130.10.40", 2);
+        final IpRangesRecord ipRangesRecord = new IpRangesRecord("10.130.10.40", 2, null);
         final List<IpRangesRecord> ipRanges = Arrays.asList(ipRangesRecord);
 
         final PolicyRecord policyRecord = new PolicyRecord(4, StrategyType.blacklist, 13, 20);
