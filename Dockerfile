@@ -38,6 +38,7 @@ RUN if [[ ${ATACH_DEBUGGER:-False} == "True" ]]; then \
  -XX:MaxGCPauseMillis=${D2P_MAX_GC_PAUSE_MILLIS:-2000} \
  -XX:InitiatingHeapOccupancyPercent=${D2P_INITIAL_HEAP_OCCUPANCY_PERCENT:-75} \
  -XX:+HeapDumpOnOutOfMemoryError \
+ -XX:+ExitOnOutOfMemoryError \
  -XX:HeapDumpPath=/opt/dump2proto \
 "' >> /opt/dump2proto/start.sh && \
    echo '\
