@@ -130,16 +130,22 @@ public class ResolverThreatsProcessor {
                     clientIDsToProcess.add(clientID);
                 }
                 logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + clientIDsToProcess.size() + " Client IDs collected.");
-                // We need to fetch all resolver IDs for these client IDs
-                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Converting Client IDs to Resolver IDs...");
-                final QueryFactory qf = Search.getQueryFactory(resolverConfigurationCache);
-                final Query query = qf.from(ResolverConfiguration.class)
-                        .having("clientId").in(clientIDsToProcess)
-                        .toBuilder()
-                        .build();
-                final List<ResolverConfiguration> resolverConfigurations = query.list();
-                resolverConfigurations.forEach(c -> keys.add(c.getResolverId()));
-                logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + keys.size() + " Resolver IDs collected.");
+                if(clientIDsToProcess.size() > 0) {
+                    // We need to fetch all resolver IDs for these client IDs
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Converting Client IDs to Resolver IDs...");
+                    final QueryFactory qf = Search.getQueryFactory(resolverConfigurationCache);
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": QueryFactory...");
+                    final Query query = qf.from(ResolverConfiguration.class)
+                            .having("clientId").in(clientIDsToProcess)
+                            .toBuilder()
+                            .build();
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": query...");
+
+                    final List<ResolverConfiguration> resolverConfigurations = query.list();
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": query.list()...");
+                    resolverConfigurations.forEach(c -> keys.add(c.getResolverId()));
+                    logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": " + keys.size() + " Resolver IDs collected.");
+                }
             }
 
             logger.log(Level.INFO, "Thread " + Thread.currentThread().getName() + ": Working with " + keys.size() + " Resolver IDs that changed recently...");
