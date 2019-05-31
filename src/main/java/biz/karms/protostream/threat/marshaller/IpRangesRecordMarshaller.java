@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat.marshaller;
 
+import biz.karms.protostream.BigIntegerNormalizer;
 import biz.karms.protostream.threat.domain.IpRangesRecord;
 import org.infinispan.protostream.MessageMarshaller;
 
@@ -23,8 +24,8 @@ public class IpRangesRecordMarshaller implements MessageMarshaller<IpRangesRecor
 
     @Override
     public void writeTo(ProtoStreamWriter writer, IpRangesRecord record) throws IOException {
-        writer.writeBytes("startIpRange", record.getStartIpRangeNum().toByteArray());
-        writer.writeBytes("endIpRange", record.getEndIpRangeNum().toByteArray());
+        writer.writeBytes("startIpRange", BigIntegerNormalizer.unsignedBigEndian(record.getStartIpRangeNum().toByteArray(), 16));
+        writer.writeBytes("endIpRange", BigIntegerNormalizer.unsignedBigEndian(record.getEndIpRangeNum().toByteArray(), 16));
         writer.writeString("identity", record.getIdentity());
         writer.writeInt("policyId", record.getPolicyId());
     }

@@ -28,8 +28,8 @@ public class ProtostreamTransformerTaskTest {
         transformerTask = new ProtostreamTransformerTask(Mockito.mock(ResolverConfiguration.class));
 
         final Threat threat = new Threat(new BigInteger("2315137971279604471"));
-        threat.setSlot0(Flag.blacklist);
-        threat.setSlot2(Flag.whitelist);
+        threat.setSlot(0, Flag.blacklist);
+        threat.setSlot(2, Flag.whitelist);
         final List<Threat> threats = Arrays.asList(threat);
 
 

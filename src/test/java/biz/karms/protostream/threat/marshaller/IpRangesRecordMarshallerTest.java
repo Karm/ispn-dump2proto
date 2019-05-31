@@ -1,5 +1,6 @@
 package biz.karms.protostream.threat.marshaller;
 
+import biz.karms.protostream.BigIntegerNormalizer;
 import biz.karms.protostream.threat.domain.IpRangesRecord;
 import biz.karms.sinkit.ejb.util.CIDRUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -49,8 +50,8 @@ public class IpRangesRecordMarshallerTest {
         marshaller.writeTo(writer, record);
 
         // verification
-        verify(writer).writeBytes("startIpRange", tmpRanges.getLeft().toByteArray());
-        verify(writer).writeBytes("endIpRange", tmpRanges.getRight().toByteArray());
+        verify(writer).writeBytes("startIpRange", BigIntegerNormalizer.unsignedBigEndian(tmpRanges.getLeft().toByteArray(), 16));
+        verify(writer).writeBytes("endIpRange", BigIntegerNormalizer.unsignedBigEndian(tmpRanges.getRight().toByteArray(), 16));
         verify(writer).writeString("identity", null);
         verify(writer).writeInt("policyId", 1);
     }

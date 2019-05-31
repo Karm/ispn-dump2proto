@@ -1,11 +1,11 @@
 package biz.karms.protostream.threat.marshaller;
 
+import biz.karms.protostream.BigIntegerNormalizer;
 import biz.karms.protostream.threat.domain.Flag;
 import biz.karms.protostream.threat.domain.Threat;
 import org.infinispan.protostream.MessageMarshaller;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -15,7 +15,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 public class ThreatMarshallerTest {
@@ -48,34 +47,32 @@ public class ThreatMarshallerTest {
         // preparation
         final Threat record = new Threat(new BigInteger("14378846635097004878"));
         record.setAccuracy(50);
-        record.setSlot0(Flag.blacklist);
-        record.setSlot1(Flag.whitelist);
-        record.setSlot2(Flag.audit);
-        record.setSlot3(Flag.drop);
-        record.setSlot4(Flag.accuracy);
+        record.setSlot(0, Flag.blacklist);
+        record.setSlot(1, Flag.whitelist);
+        record.setSlot(2, Flag.audit);
+        record.setSlot(3, Flag.drop);
+        record.setSlot(4, Flag.accuracy);
 
-        final List<Integer> tmpFlags = Arrays.asList(
-                (int) Flag.blacklist.getByteValue(),
-                (int) Flag.whitelist.getByteValue(),
-                (int) Flag.audit.getByteValue(),
-                (int) Flag.drop.getByteValue(),
-                (int) Flag.accuracy.getByteValue(),
-                0, 0, 0, 0, 0, 0, 0
+        final List<Flag> tmpFlags = Arrays.asList(
+                Flag.blacklist,
+                Flag.whitelist,
+                Flag.audit,
+                Flag.drop,
+                Flag.accuracy,
+                Flag.none, Flag.none, Flag.none, Flag.none, Flag.none, Flag.none, Flag.none
         );
 
         // calling tested method
         marshaller.writeTo(writer, record);
 
         // verification
-        verify(writer).writeBytes("crc64", record.getCrc64().toByteArray());
+        verify(writer).writeBytes("crc64", BigIntegerNormalizer.unsignedBigEndian(record.getCrc64().toByteArray(), 8));
         verify(writer).writeInt("accuracy", 50);
 
-        final ArgumentCaptor<List<Integer>> flagsCaptor = ArgumentCaptor.forClass(List.class);
-        verify(writer).writeCollection(eq("flags"), flagsCaptor.capture(), eq(Integer.class));
-
-        final List<Integer> flags = flagsCaptor.getValue();
-        for (int i = 0; i < flags.size(); i++) {
-            assertThat(flags.get(i), is(tmpFlags.get(i)));
+        final byte[] flags = new byte[tmpFlags.size()];
+        for (int i = 0; i < tmpFlags.size(); i++) {
+            flags[i] = (tmpFlags.get(i) != null) ? tmpFlags.get(i).getByteValue() : Flag.none.getByteValue();
         }
+        verify(writer).writeBytes("flags", flags);
     }
 }

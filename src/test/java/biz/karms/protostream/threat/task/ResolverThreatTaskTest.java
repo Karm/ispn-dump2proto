@@ -445,7 +445,7 @@ public class ResolverThreatTaskTest {
 
         final Map<BigInteger, Threat> threatMap = new HashMap<>();
         final Threat existingThreat = new Threat(crc64);
-        existingThreat.setSlot0(Flag.blacklist);
+        existingThreat.setSlot(0, Flag.blacklist);
         threatMap.put(crc64, existingThreat);
 
         // calling tested method
@@ -455,7 +455,7 @@ public class ResolverThreatTaskTest {
         assertThat(threatMap, aMapWithSize(1));
         final Threat updatedThreat = threatMap.get(crc64);
         assertThat(updatedThreat, notNullValue());
-        assertThat(updatedThreat.getSlot0(), is(Flag.whitelist));
+        assertThat(updatedThreat.getSlots()[0], is(Flag.whitelist));
     }
 
     @Test
@@ -475,7 +475,7 @@ public class ResolverThreatTaskTest {
 
         final Map<BigInteger, Threat> threatMap = new HashMap<>();
         Threat existingThreat = new Threat(crc64ExistingDomain);
-        existingThreat.setSlot0(Flag.blacklist);
+        existingThreat.setSlot(0, Flag.blacklist);
         threatMap.put(crc64ExistingDomain, existingThreat);
 
         // calling tested method
@@ -485,10 +485,10 @@ public class ResolverThreatTaskTest {
         assertThat(threatMap, aMapWithSize(2));
         existingThreat = threatMap.get(crc64ExistingDomain);
         assertThat(existingThreat, notNullValue());
-        assertThat(existingThreat.getSlot0(), is(Flag.blacklist));
+        assertThat(existingThreat.getSlots()[0], is(Flag.blacklist));
         final Threat newThreat = threatMap.get(crc64);
         assertThat(newThreat, notNullValue());
-        assertThat(newThreat.getSlot0(), is(Flag.whitelist));
+        assertThat(newThreat.getSlots()[0], is(Flag.whitelist));
     }
 
     @Test

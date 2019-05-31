@@ -10,7 +10,7 @@ message ResolverRecord {
 message Threat {
     required bytes crc64 = 1;
     required int32 accuracy = 2;
-    repeated int32 flags = 3;
+    required bytes flags = 3;
 }
 
 message IpRangesRecord {
