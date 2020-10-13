@@ -58,7 +58,7 @@
         <lombok.version>1.16.20</lombok.version>
         <!-- Test -->
         <org.testng.version>6.11</org.testng.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <java-hamcrest.version>2.0.0.0</java-hamcrest.version>
         <mocito.version>2.16.0</mocito.version>
         <surefire.version>2.20.1</surefire.version>
